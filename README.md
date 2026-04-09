@@ -1,36 +1,12 @@
 # Emerge Demo
 
-This is the standalone demo app for `Emerge`.
-Demo repo: https://github.com/emerge-elixir/emerge_demo
+A demo application built with `Emerge` and `Solve`. It includes a Todo app and a Showcase app, so you can see how `Emerge` UI code and `Solve` state management fit together in a small Elixir project.
 
-It combines a realistic Todo app with a broader Showcase so you can inspect both stateful application structure and focused examples of individual `Emerge` features.
+## Requirements
 
-## Included screens
+- Elixir `~> 1.19`
 
-- `Todo` for inline editing, filtering, focus handling, and per-item editor state
-- `Showcase` for focused feature demos:
-  - `Layout`
-  - `Text`
-  - `Assets`
-  - `Borders`
-  - `Nearby`
-  - `Scroll`
-  - `Keys`
-  - `Interaction`
-
-## What this example demonstrates
-
-- an `Emerge` viewport shell (`EmergeDemo`)
-- multiple `Solve` apps (`Todo`, `Showcase`, and app selection)
-- app-level screen switching
-- collection controllers for per-item Todo editing
-- focus styling and `focus_on_mount()` for inline editing
-- hover code previews in Showcase
-- startup font assets and runtime path allowlisting
-- keyed vs unkeyed UI behavior
-- keyboard, pointer, scroll, nearby, transform, and soft-keyboard demos
-
-## Run
+## Run Locally
 
 ```bash
 mix deps.get
@@ -45,30 +21,33 @@ This starts the demo in dev mode with hot reloading enabled for files under `lib
 mix test
 ```
 
-## What to try
+## Use The App
 
-- switch between `Todo` and `Showcase`
-- edit a Todo inline and watch focus move with `focus_on_mount()`
-- open `Assets` and compare static, runtime, and blocked sources
-- open `Keys` and compare keyed vs unkeyed behavior
-- open `Interaction` and try the soft keyboard and focused key listener
-- hover Showcase examples to inspect the simplified code previews
+- Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
+- `Todo` is the main end-to-end example.
+- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, and interaction.
 
-## Runtime notes
+## Project Layout
+
+A good place to start is the top-level app selector.
+
+`lib/emerge_demo.ex` is the viewport entrypoint. Its `render/0` function renders `EmergeDemo.AppSelector.View`, so that is the first layer of the app.
+
+`lib/emerge_demo/app_selector/` contains a small `Solve` app that owns the active screen and decides whether the viewport shows `Todo` or `Showcase`.
+
+From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app is assembled. It defines the Todo controller graph. Read that file first, then follow the controllers it wires together.
+
+`lib/emerge_demo/todo/view.ex` shows the other side of that setup: it reads exposed state with `Solve.Lookup` and renders the Todo UI with `Emerge`.
+
+`lib/emerge_demo/showcase/` follows the same broad pattern, but is organized as smaller focused examples instead of one app flow.
+
+## Notes
 
 - renderer backend defaults to Wayland
 - window title defaults to `Emerge Example`
 - dev mode enables the `Emerge` code reloader for `lib`
-- Showcase config includes startup-loaded font assets and runtime path allowlisting
 
-## Project structure
+## References
 
-- `lib/emerge_demo.ex` - viewport entrypoint and renderer config
-- `lib/emerge_demo/application.ex` - app supervision tree
-- `lib/emerge_demo/todo/` - Todo app, controllers, and views
-- `lib/emerge_demo/showcase/` - Showcase app, controllers, views, and asset catalog
-- `lib/emerge_demo/app_selector/` - screen selection shell
-
-## More docs
-
-For the `Emerge` library, see https://github.com/emerge-elixir/emerge and https://hexdocs.pm/emerge.
+- [Emerge](https://hexdocs.pm/emerge)
+- [Solve](https://hexdocs.pm/solve)
