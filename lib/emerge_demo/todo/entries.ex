@@ -1,12 +1,12 @@
-defmodule EmergeDemo.Todo.TodoList do
+defmodule EmergeDemo.Todo.Entries do
   @moduledoc false
 
   use Solve.Controller,
     events: [
-      :create_todo,
-      :update_todo,
-      :delete_todo,
-      :toggle_todo,
+      :create,
+      :update,
+      :delete,
+      :toggle,
       :toggle_all,
       :clear_completed
     ]
@@ -20,7 +20,7 @@ defmodule EmergeDemo.Todo.TodoList do
     }
   end
 
-  def create_todo(title, state, _dependencies, _callbacks, _params) when is_binary(title) do
+  def create(title, state, _dependencies, _callbacks, _params) when is_binary(title) do
     case String.trim(title) do
       "" ->
         state
@@ -37,18 +37,18 @@ defmodule EmergeDemo.Todo.TodoList do
     end
   end
 
-  def update_todo(%{id: id, title: title}, state, _dependencies, _callbacks, _params)
+  def update(%{id: id, title: title}, state, _dependencies, _callbacks, _params)
       when is_binary(title) do
     title = String.trim(title)
 
     case {Map.has_key?(state.todos, id), title} do
       {false, _} -> state
-      {true, ""} -> delete_todo(id, state, %{}, %{}, %{})
+      {true, ""} -> delete(id, state, %{}, %{}, %{})
       {true, _} -> put_in(state.todos[id].title, title)
     end
   end
 
-  def delete_todo(id, state, _dependencies, _callbacks, _params) do
+  def delete(id, state, _dependencies, _callbacks, _params) do
     %{
       state
       | ids: Enum.reject(state.ids, &(&1 == id)),
@@ -56,7 +56,7 @@ defmodule EmergeDemo.Todo.TodoList do
     }
   end
 
-  def toggle_todo(id, state, _dependencies, _callbacks, _params) do
+  def toggle(id, state, _dependencies, _callbacks, _params) do
     get_and_update_in(state, [:todos, id], fn
       nil -> :pop
       todo -> {todo, %{todo | completed?: !todo.completed?}}

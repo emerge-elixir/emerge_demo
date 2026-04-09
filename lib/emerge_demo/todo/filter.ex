@@ -12,11 +12,11 @@ defmodule EmergeDemo.Todo.Filter do
   def set(_filter, state), do: state
 
   @impl true
-  def expose(state, %{todo_list: todo_list}, _params) do
+  def expose(state, %{entries: entries}, _params) do
     %{
       filters: @filters,
       active: state.active,
-      visible_ids: visible_ids(state.active, todo_list)
+      visible_ids: visible_ids(state.active, entries)
     }
   end
 

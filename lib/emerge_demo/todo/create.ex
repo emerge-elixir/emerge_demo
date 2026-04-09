@@ -1,22 +1,22 @@
-defmodule EmergeDemo.Todo.CreateTodo do
+defmodule EmergeDemo.Todo.Create do
   @moduledoc false
 
-  use Solve.Controller, events: [:set_title, :submit]
+  use Solve.Controller, events: [:set, :create]
 
   @impl true
   def init(_params, _dependencies), do: %{title: ""}
 
-  def set_title(title) when is_binary(title) do
+  def set(title) when is_binary(title) do
     %{title: title}
   end
 
-  def submit(_payload, state, _dependencies, callbacks) do
+  def create(_payload, state, _dependencies, callbacks) do
     case String.trim(state.title) do
       "" ->
         %{title: ""}
 
       title ->
-        callbacks.submit.(title)
+        callbacks.create.(title)
         %{title: ""}
     end
   end

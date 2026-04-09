@@ -1,4 +1,4 @@
-defmodule EmergeDemo.TodoApp.View do
+defmodule EmergeDemo.Todo.View do
   use Emerge.UI
   use Solve.Lookup, :helpers
 
@@ -35,7 +35,7 @@ defmodule EmergeDemo.TodoApp.View do
         Border.rounded(2),
         card_shadow()
       ],
-      [input_bar(), todo_list(), controls()]
+      [input_bar(), entries(), controls()]
     )
   end
 
@@ -47,15 +47,15 @@ defmodule EmergeDemo.TodoApp.View do
         Background.color(card_bg()),
         Border.inner_shadow(offset: {0, -1}, blur: 4, size: 0, color: color_rgba(0, 0, 0, 0.05))
       ],
-      [toggle_all(), create_todo_input()]
+      [toggle_all(), create_input()]
     )
   end
 
   def toggle_all() do
-    todo_list = solve(Todo.App, :todo_list)
+    entries = solve(Todo.App, :entries)
 
-    if todo_list do
-      font_color = if(todo_list.all_completed?, do: todo_text(), else: toggle_off())
+    if entries do
+      font_color = if(entries.all_completed?, do: todo_text(), else: toggle_off())
 
       Input.button(
         [
@@ -63,7 +63,7 @@ defmodule EmergeDemo.TodoApp.View do
           height(fill()),
           Font.size(24),
           Font.color(font_color),
-          Event.on_press(event(todo_list, :toggle_all)),
+          Event.on_press(event(entries, :toggle_all)),
           Interactive.mouse_over([Font.color(todo_text())])
         ] ++ transparent_surface_attrs() ++ focus_ring_attrs(),
         el([center_x(), center_y()], text("v"))
@@ -73,11 +73,11 @@ defmodule EmergeDemo.TodoApp.View do
     end
   end
 
-  def create_todo_input() do
-    create_todo = solve(Todo.App, :create_todo)
+  def create_input() do
+    create = solve(Todo.App, :create)
 
     el(
-      [width(fill()), height(fill())] ++ create_todo_placeholder_attrs(create_todo),
+      [width(fill()), height(fill())] ++ create_placeholder_attrs(create),
       Input.text(
         [
           width(fill()),
@@ -85,15 +85,15 @@ defmodule EmergeDemo.TodoApp.View do
           padding(16),
           Font.size(24),
           Font.color(text_main()),
-          Event.on_change(event(create_todo, :set_title)),
-          Event.on_key_down(:enter, event(create_todo, :submit))
+          Event.on_change(event(create, :set)),
+          Event.on_key_down(:enter, event(create, :create))
         ] ++ transparent_surface_attrs() ++ focus_ring_attrs(focus_ring_color()),
-        create_todo.title
+        create.title
       )
     )
   end
 
-  def todo_list() do
+  def entries() do
     filter = solve(Todo.App, :filter)
 
     column(
@@ -103,7 +103,7 @@ defmodule EmergeDemo.TodoApp.View do
   end
 
   def controls() do
-    todo_list = solve(Todo.App, :todo_list)
+    entries = solve(Todo.App, :entries)
 
     row(
       [
@@ -113,25 +113,25 @@ defmodule EmergeDemo.TodoApp.View do
         Border.color(line())
       ],
       [
-        counter_label(todo_list.active_count),
+        counter_label(entries.active_count),
         filters(),
-        clear_completed(todo_list)
+        clear_completed(entries)
       ]
     )
   end
 
   defp todo_row(todo_id) do
-    todo_editor = solve(Todo.App, {:todo_editor, todo_id})
+    editor = solve(Todo.App, {:editor, todo_id})
 
-    if todo_editor.editing? do
-      editing_row(todo_editor)
+    if editor.editing? do
+      editing_row(editor)
     else
       regular_row(todo_id)
     end
   end
 
   defp regular_row(todo_id) do
-    todo = solve(Todo.App, :todo_list).todos[todo_id]
+    todo = solve(Todo.App, :entries).todos[todo_id]
 
     todo_row_shell(
       [
@@ -157,34 +157,34 @@ defmodule EmergeDemo.TodoApp.View do
     )
   end
 
-  defp editing_row(todo_editor) do
+  defp editing_row(editor) do
     todo_row_shell(
-      [key({:todo, todo_editor.id})],
+      [key({:todo, editor.id})],
       [
         el([width(px(43)), height(px(58))], none()),
         Input.text(
           [
             focus_on_mount(),
-            Event.on_change(event(todo_editor, :set_title)),
-            Event.on_key_down(:enter, event(todo_editor, :save_edit)),
-            Event.on_key_down(:escape, event(todo_editor, :cancel_edit)),
-            Event.on_blur(event(todo_editor, :save_edit))
+            Event.on_change(event(editor, :set)),
+            Event.on_key_down(:enter, event(editor, :save)),
+            Event.on_key_down(:escape, event(editor, :cancel)),
+            Event.on_blur(event(editor, :save))
           ] ++ inline_editor_input_attrs() ++ focus_ring_attrs(),
-          todo_editor.title
+          editor.title
         )
       ]
     )
   end
 
   defp destroy_button(todo_id) do
-    todo_list = solve(Todo.App, :todo_list)
+    entries = solve(Todo.App, :entries)
 
     row(
       [padding_each(0, 8, 0, 0), center_y()],
       [
         action_button(
           "x",
-          event(todo_list, :delete_todo, todo_id),
+          event(entries, :delete, todo_id),
           destroy_color(),
           destroy_hover_color()
         )
@@ -193,23 +193,23 @@ defmodule EmergeDemo.TodoApp.View do
   end
 
   defp toggle_button(todo) do
-    todo_list = solve(Todo.App, :todo_list)
+    entries = solve(Todo.App, :entries)
 
     Input.button(
       [padding(12), center_y()] ++ transparent_surface_attrs() ++ press_nudge_attrs(),
-      toggle_circle(todo.completed?, event(todo_list, :toggle_todo, todo.id))
+      toggle_circle(todo.completed?, event(entries, :toggle, todo.id))
     )
   end
 
   defp title_button(todo) do
-    todo_editor = solve(Todo.App, {:todo_editor, todo.id})
+    editor = solve(Todo.App, {:editor, todo.id})
 
     Input.button(
       [
         width(fill()),
         padding_each(15, 0, 15, 15),
         Background.color(card_bg()),
-        Event.on_press(event(todo_editor, :begin_edit)),
+        Event.on_press(event(editor, :begin)),
         Interactive.mouse_over([Background.color(color(:gray, 100))])
       ] ++ transparent_border_attrs() ++ focus_ring_attrs() ++ title_text_attrs(todo),
       paragraph([width(fill()), Font.align_left()], [text(todo.title)])
@@ -250,25 +250,25 @@ defmodule EmergeDemo.TodoApp.View do
 
   defp clear_completed(%{has_completed?: false}), do: none()
 
-  defp clear_completed(todo_list) do
+  defp clear_completed(entries) do
     Input.button(
       [
         center_y(),
         align_right(),
         Font.size(14),
         Font.color(muted_text()),
-        Event.on_press(event(todo_list, :clear_completed)),
+        Event.on_press(event(entries, :clear_completed)),
         Interactive.mouse_over([Font.underline()])
       ] ++ transparent_surface_attrs() ++ focus_ring_attrs() ++ press_nudge_attrs(),
       text("Clear completed")
     )
   end
 
-  defp create_todo_placeholder_attrs(%{title: ""}) do
+  defp create_placeholder_attrs(%{title: ""}) do
     [Nearby.behind_content(placeholder_overlay("What needs to be done?"))]
   end
 
-  defp create_todo_placeholder_attrs(_create_todo), do: []
+  defp create_placeholder_attrs(_create), do: []
 
   defp title_text_attrs(%{completed?: true}) do
     [Font.size(24), Font.color(todo_completed()), Font.strike()]

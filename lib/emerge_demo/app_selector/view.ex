@@ -4,7 +4,7 @@ defmodule EmergeDemo.AppSelector.View do
 
   alias EmergeDemo.AppSelector
   alias EmergeDemo.Showcase
-  alias EmergeDemo.TodoApp
+  alias EmergeDemo.Todo
 
   @shell_surface color_rgba(255, 255, 255, 0.94)
   @shell_line color_rgb(230, 230, 230)
@@ -139,8 +139,8 @@ defmodule EmergeDemo.AppSelector.View do
 
     case selector.current do
       :showcase -> Showcase.View.layout()
-      :todo -> TodoApp.View.layout()
-      _other -> TodoApp.View.layout()
+      :todo -> Todo.View.layout()
+      _other -> Todo.View.layout()
     end
   end
 end

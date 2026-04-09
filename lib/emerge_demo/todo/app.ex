@@ -19,35 +19,35 @@ defmodule EmergeDemo.Todo.App do
   @impl Solve
   def controllers do
     [
-      controller!(name: :todo_list, module: Todo.TodoList),
+      controller!(name: :entries, module: Todo.Entries),
       controller!(
-        name: :create_todo,
-        module: Todo.CreateTodo,
+        name: :create,
+        module: Todo.Create,
         params: fn _ -> true end,
         callbacks: %{
-          submit: fn title -> dispatch(:todo_list, :create_todo, title) end
+          create: fn title -> dispatch(:entries, :create, title) end
         }
       ),
       controller!(
         name: :filter,
         module: Todo.Filter,
-        dependencies: [:todo_list],
-        params: fn %{dependencies: %{todo_list: todo_list}} -> not is_nil(todo_list) end
+        dependencies: [:entries],
+        params: fn %{dependencies: %{entries: entries}} -> not is_nil(entries) end
       ),
       controller!(
-        name: :todo_editor,
-        module: Todo.TodoEditor,
+        name: :editor,
+        module: Todo.Editor,
         variant: :collection,
-        dependencies: [:todo_list],
-        params: fn %{dependencies: %{todo_list: todo_list}} -> not is_nil(todo_list) end,
+        dependencies: [:entries],
+        params: fn %{dependencies: %{entries: entries}} -> not is_nil(entries) end,
         callbacks: %{
-          save_edit: fn id, title ->
-            dispatch(:todo_list, :update_todo, %{id: id, title: title})
+          save: fn id, title ->
+            dispatch(:entries, :update, %{id: id, title: title})
           end
         },
-        collect: fn %{dependencies: %{todo_list: todo_list}} ->
-          Enum.map(todo_list.ids, fn id ->
-            {id, [params: %{id: id, title: todo_list.todos[id].title}]}
+        collect: fn %{dependencies: %{entries: entries}} ->
+          Enum.map(entries.ids, fn id ->
+            {id, [params: %{id: id, title: entries.todos[id].title}]}
           end)
         end
       )

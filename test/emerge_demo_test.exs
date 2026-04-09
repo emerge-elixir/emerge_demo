@@ -9,7 +9,7 @@ defmodule EmergeDemoTest do
     }
 
     assert {:ok, next_state} =
-             EmergeDemo.handle_solve_updated(%{EmergeDemo.Todo.App => [:todo_list]}, state)
+             EmergeDemo.handle_solve_updated(%{EmergeDemo.Todo.App => [:entries]}, state)
 
     assert next_state.__emerge__.dirty?
     assert next_state.__emerge__.flush_scheduled?
