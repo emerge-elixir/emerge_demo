@@ -32,8 +32,6 @@ It combines a realistic Todo app with a broader Showcase so you can inspect both
 
 ## Run
 
-This demo currently expects a sibling checkout of `Emerge` at `../emerge`.
-
 ```bash
 mix deps.get
 iex -S mix

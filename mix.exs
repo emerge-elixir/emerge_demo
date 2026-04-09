@@ -23,7 +23,7 @@ defmodule EmergeDemo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:emerge, path: "../emerge"},
+      {:emerge, "~> 0.1.0"},
       {:solve, "~> 0.1.0"},
       {:file_system, "~> 1.0", only: :dev},
       {:rustler, "~> 0.37", optional: true}
