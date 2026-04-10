@@ -5,6 +5,8 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 ## Requirements
 
 - Elixir `~> 1.19`
+- Linux with a working Wayland session
+- Ubuntu 24.04 or newer should work with the precompiled `emerge` binary
 
 ## Run Locally
 
@@ -12,6 +14,21 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 mix deps.get
 iex -S mix
 ```
+
+If you use `mise`, install the exact Erlang/OTP and Elixir versions pinned in `mise.toml` first:
+
+```bash
+mise install
+```
+
+If the precompiled `emerge` NIF does not load on your distro, rebuild `emerge` locally instead:
+
+```bash
+mix deps.clean --build emerge
+EMERGE_SKIA_BUILD=1 mix deps.compile emerge
+```
+
+This requires a Rust toolchain and the native Wayland/graphics build dependencies for `emerge`.
 
 This starts the demo in dev mode with hot reloading enabled for files under `lib`.
 
