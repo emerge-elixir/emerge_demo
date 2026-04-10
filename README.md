@@ -10,6 +10,7 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 
 ## Run Locally
 
+This starts the demo in dev mode with hot reloading enabled for files under `lib`.
 ```bash
 mix deps.get
 iex -S mix
@@ -30,7 +31,6 @@ EMERGE_SKIA_BUILD=1 mix deps.compile emerge
 
 This requires a Rust toolchain and the native Wayland/graphics build dependencies for `emerge`.
 
-This starts the demo in dev mode with hot reloading enabled for files under `lib`.
 
 ## Test
 
