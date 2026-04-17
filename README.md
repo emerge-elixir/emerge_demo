@@ -5,8 +5,12 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 ## Requirements
 
 - Elixir `~> 1.19`
-- Linux with a working Wayland session
-- Ubuntu 24.04 or newer should work with the precompiled `emerge` binary
+- Linux with a working Wayland session, or macOS 15+
+
+### Platform Notes
+
+- `Emerge` `~> 0.2.0` supports Linux and macOS.
+- Linux: Ubuntu 24.04 or newer should work with the precompiled `emerge` binary.
 
 ## Run Locally
 
@@ -22,6 +26,13 @@ If you use `mise`, install the exact Erlang/OTP and Elixir versions pinned in `m
 mise install
 ```
 
+### Hot Code Reload
+
+Dev mode uses `file_system` to watch files under `lib` and trigger hot code reload.
+
+- Linux: install `inotify-tools` so the watcher backend can run.
+- macOS: hot reload uses the native FSEvents watcher. No separate `inotify`-style package is needed, but Xcode or the Command Line Tools should be installed.
+
 If the precompiled `emerge` NIF does not load on your distro, rebuild `emerge` locally instead:
 
 ```bash
@@ -29,7 +40,7 @@ mix deps.clean --build emerge
 EMERGE_SKIA_BUILD=1 mix deps.compile emerge
 ```
 
-This requires a Rust toolchain and the native Wayland/graphics build dependencies for `emerge`.
+This requires a Rust toolchain plus the native graphics build dependencies for `emerge` on your platform.
 
 
 ## Test
@@ -60,7 +71,7 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 
 ## Notes
 
-- renderer backend defaults to Wayland
+- Linux renderer backend defaults to Wayland
 - window title defaults to `Emerge Example`
 - dev mode enables the `Emerge` code reloader for `lib`
 
