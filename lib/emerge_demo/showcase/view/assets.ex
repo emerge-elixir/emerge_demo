@@ -203,7 +203,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
   defp assets_overview_showcase do
     wrapped_row([width(fill()), spacing_xy(16, 16)], [
       column([width(max(px(240), fill())), spacing(8)], [
-        el([Font.color(color(:slate, 50)), Font.size(14)], text("image/2")),
+        el([Font.color(color(:slate, 500)), Font.size(14)], text("image/2")),
         el(
           [
             padding(10),
@@ -217,7 +217,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
         )
       ]),
       column([width(max(px(320), fill())), spacing(8)], [
-        el([Font.color(color(:slate, 50)), Font.size(14)], text("Background.image/2")),
+        el([Font.color(color(:slate, 500)), Font.size(14)], text("Background.image/2")),
         el(
           [
             width(px(288)),
