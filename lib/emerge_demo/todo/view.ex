@@ -97,7 +97,7 @@ defmodule EmergeDemo.Todo.View do
     filter = solve(Todo.App, :filter)
 
     column(
-      [spacing(1)],
+      [spacing(1), height(fill()), scrollbar_y()],
       Enum.map(filter.visible_ids, &todo_row/1)
     )
   end

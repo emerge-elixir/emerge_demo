@@ -10,6 +10,7 @@ defmodule EmergeDemo.Showcase.View.Layout do
       sizing_section(),
       spacing_section(),
       alignment_section(),
+      layout_aware_transforms_section(),
       transforms_section()
     ])
   end
@@ -58,7 +59,7 @@ defmodule EmergeDemo.Showcase.View.Layout do
     column([width(fill()), spacing(16)], [
       section_title("Transforms"),
       section_copy(
-        "Transforms change paint, not layout. The slot stays put even when the element moves, rotates, scales, or fades."
+        "Paint transforms change what is drawn without changing sibling placement. Use these when the original layout slot should stay fixed."
       ),
       View.hover_example(
         {:layout, :transform_slot},
@@ -69,6 +70,25 @@ defmodule EmergeDemo.Showcase.View.Layout do
         {:layout, :transform_cards},
         transform_cards_code(),
         transform_cards_demo()
+      )
+    ])
+  end
+
+  defp layout_aware_transforms_section do
+    column([width(fill()), spacing(16)], [
+      section_title("Layout-Aware Scale + Rotate"),
+      section_copy(
+        "Top-level scale/1 and rotate/1 participate in measurement, sibling placement, scroll extents, and hit testing."
+      ),
+      View.hover_example(
+        {:layout, :layout_scale},
+        layout_scale_code(),
+        layout_scale_demo()
+      ),
+      View.hover_example(
+        {:layout, :layout_rotate},
+        layout_rotate_code(),
+        layout_rotate_demo()
       )
     ])
   end
@@ -306,6 +326,61 @@ defmodule EmergeDemo.Showcase.View.Layout do
     )
   end
 
+  defp layout_scale_demo do
+    el(
+      [
+        width(fill()),
+        padding(16),
+        Background.color(color_rgb(246, 248, 252)),
+        Border.rounded(12),
+        Border.width(1),
+        Border.color(color_rgb(224, 229, 238))
+      ],
+      wrapped_row([width(fill()), spacing_xy(18, 18)], [
+        layout_measure_card("Normal", "160 x 64", [], tone_blue()),
+        layout_measure_card("scale(1.25)", "reserved as 200 x 80", [scale(1.25)], tone_teal()),
+        layout_measure_card("Next sibling", "starts after scaled slot", [], tone_slate())
+      ])
+    )
+  end
+
+  defp layout_rotate_demo do
+    el(
+      [
+        width(fill()),
+        padding(18),
+        Background.color(color_rgb(248, 247, 252)),
+        Border.rounded(12),
+        Border.width(1),
+        Border.color(color_rgb(226, 223, 236))
+      ],
+      wrapped_row([width(fill()), spacing_xy(24, 24)], [
+        layout_measure_card("Before", "ordinary slot", [], tone_indigo()),
+        layout_measure_card("rotate(-24)", "AABB is reserved", [rotate(-24)], tone_rose()),
+        layout_measure_card("After", "placed past bounds", [], tone_ocean())
+      ])
+    )
+  end
+
+  defp layout_measure_card(title, detail, transform_attrs, tone) do
+    el(
+      [width(px(160)), height(px(64))] ++
+        transform_attrs ++
+        [
+          padding(10),
+          Background.color(tone.surface),
+          Border.rounded(10),
+          Border.width(1),
+          Border.color(color_rgba(255, 255, 255, 0.28)),
+          Border.shadow(offset: {0, 8}, blur: 20, size: 0, color: color_rgba(0, 0, 0, 0.12))
+        ],
+      column([width(fill()), center_y(), spacing(4)], [
+        el([Font.size(14), Font.color(tone.title), Font.bold()], text(title)),
+        el([Font.size(11), Font.color(tone.detail)], text(detail))
+      ])
+    )
+  end
+
   defp shrink_fill_code do
     ~S"""
     row([width(fill()), spacing(12)], [
@@ -422,6 +497,26 @@ defmodule EmergeDemo.Showcase.View.Layout do
       el([width(px(170)), Transform.rotate(-8)], text("Rotate")),
       el([width(px(170)), Transform.scale(1.08)], text("Scale")),
       el([width(px(170)), Transform.alpha(0.6)], text("Alpha"))
+    ])
+    """
+  end
+
+  defp layout_scale_code do
+    ~S"""
+    wrapped_row([width(fill()), spacing_xy(18, 18)], [
+      el([width(px(160)), height(px(64))], text("Normal")),
+      el([width(px(160)), height(px(64)), scale(1.25)], text("scale(1.25)")),
+      el([width(px(160)), height(px(64))], text("Next sibling"))
+    ])
+    """
+  end
+
+  defp layout_rotate_code do
+    ~S"""
+    wrapped_row([width(fill()), spacing_xy(24, 24)], [
+      el([width(px(160)), height(px(64))], text("Before")),
+      el([width(px(160)), height(px(64)), rotate(-24)], text("rotate(-24)")),
+      el([width(px(160)), height(px(64))], text("After"))
     ])
     """
   end

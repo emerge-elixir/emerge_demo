@@ -16,7 +16,8 @@ defmodule EmergeDemo do
          emerge_skia: [
            otp_app: :emerge_demo,
            title: "Emerge Example",
-           assets: AssetCatalog.renderer_assets_config()
+           assets: AssetCatalog.renderer_assets_config(),
+           renderer_stats_log: true
          ]
        ],
        opts
