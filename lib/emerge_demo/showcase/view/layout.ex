@@ -89,6 +89,11 @@ defmodule EmergeDemo.Showcase.View.Layout do
         {:layout, :layout_rotate},
         layout_rotate_code(),
         layout_rotate_demo()
+      ),
+      View.hover_example(
+        {:layout, :layout_transform_animation},
+        layout_transform_animation_code(),
+        layout_transform_animation_demo()
       )
     ])
   end
@@ -130,12 +135,12 @@ defmodule EmergeDemo.Showcase.View.Layout do
   defp min_max_example do
     row([width(fill()), spacing(12)], [
       sizing_card(
-        [width(min(px(140), shrink()))],
-        "Min + shrink",
+        [width(max(px(140), shrink()))],
+        "Max + shrink",
         "At least 140px",
         tone_purple()
       ),
-      sizing_card([width(max(px(180), fill()))], "Max + fill", "At most 180px", tone_rose())
+      sizing_card([width(min(px(180), fill()))], "Min + fill", "At most 180px", tone_rose())
     ])
   end
 
@@ -362,6 +367,40 @@ defmodule EmergeDemo.Showcase.View.Layout do
     )
   end
 
+  defp layout_transform_animation_demo do
+    el(
+      [
+        width(fill()),
+        padding(18),
+        Background.color(color_rgb(246, 249, 247)),
+        Border.rounded(12),
+        Border.width(1),
+        Border.color(color_rgb(220, 232, 224))
+      ],
+      wrapped_row([width(fill()), spacing_xy(24, 24)], [
+        layout_measure_card("Anchor", "fixed slot", [], tone_teal()),
+        layout_measure_card(
+          "Animated",
+          "scale + rotate",
+          [
+            Animation.animate(
+              [
+                [scale(0.92), rotate(-10)],
+                [scale(1.18), rotate(14)],
+                [scale(0.92), rotate(-10)]
+              ],
+              1600,
+              :ease_in_out,
+              :loop
+            )
+          ],
+          tone_purple()
+        ),
+        layout_measure_card("Follower", "moves with AABB", [], tone_ocean())
+      ])
+    )
+  end
+
   defp layout_measure_card(title, detail, transform_attrs, tone) do
     el(
       [width(px(160)), height(px(64))] ++
@@ -403,8 +442,8 @@ defmodule EmergeDemo.Showcase.View.Layout do
   defp min_max_code do
     ~S"""
     row([width(fill()), spacing(12)], [
-      el([width(min(px(140), shrink()))], text("Min + shrink")),
-      el([width(max(px(180), fill()))], text("Max + fill"))
+      el([width(max(px(140), shrink()))], text("Max + shrink")),
+      el([width(min(px(180), fill()))], text("Min + fill"))
     ])
     """
   end
@@ -517,6 +556,24 @@ defmodule EmergeDemo.Showcase.View.Layout do
       el([width(px(160)), height(px(64))], text("Before")),
       el([width(px(160)), height(px(64)), rotate(-24)], text("rotate(-24)")),
       el([width(px(160)), height(px(64))], text("After"))
+    ])
+    """
+  end
+
+  defp layout_transform_animation_code do
+    ~S"""
+    wrapped_row([width(fill()), spacing_xy(24, 24)], [
+      el([width(px(160)), height(px(64))], text("Anchor")),
+      el([
+        width(px(160)),
+        height(px(64)),
+        Animation.animate([
+          [scale(0.92), rotate(-10)],
+          [scale(1.18), rotate(14)],
+          [scale(0.92), rotate(-10)]
+        ], 1600, :ease_in_out, :loop)
+      ], text("Animated")),
+      el([width(px(160)), height(px(64))], text("Follower"))
     ])
     """
   end

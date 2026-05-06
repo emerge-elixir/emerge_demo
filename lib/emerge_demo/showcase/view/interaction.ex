@@ -798,7 +798,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
     interaction = solve(Showcase.App, :interaction)
     active? = interaction.manual_hover?
 
-    column([width(max(px(320), fill())), padding(10), spacing(10)], [
+    column([width(min(px(320), fill())), padding(10), spacing(10)], [
       el([Font.size(14), Font.color(title_text())], text("on_mouse_enter / on_mouse_leave")),
       el(
         [Font.size(11), Font.color(body_text())],
@@ -847,7 +847,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   end
 
   defp declarative_hover_panel do
-    column([width(max(px(320), fill())), padding(10), spacing(10)], [
+    column([width(min(px(320), fill())), padding(10), spacing(10)], [
       el([Font.size(14), Font.color(title_text())], text("mouse_over")),
       el(
         [Font.size(11), Font.color(body_text())],
@@ -1171,7 +1171,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
          event_attrs,
          bg_color
        ) do
-    column([width(max(px(238), fill())), spacing(8)], [
+    column([width(min(px(238), fill())), spacing(8)], [
       el([Font.size(13), Font.color(title_text()), Font.bold()], text(label)),
       paragraph([width(fill()), spacing(3), Font.size(11), Font.color(body_text())], [
         text(instruction)
@@ -1273,7 +1273,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   defp soft_keyboard_text_input do
     text_input = solve(Showcase.App, :text_input)
 
-    column([width(max(px(320), fill())), spacing(8)], [
+    column([width(min(px(320), fill())), spacing(8)], [
       el([Font.size(12), Font.color(panel_title())], text("Keyboard target: text input")),
       Input.text(
         [
@@ -1303,7 +1303,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   defp soft_keyboard_button do
     input_button = solve(Showcase.App, :input_button)
 
-    column([width(max(px(220), fill())), spacing(8)], [
+    column([width(min(px(220), fill())), spacing(8)], [
       el([Font.size(12), Font.color(panel_title())], text("Keyboard target: button")),
       Input.button(
         [
@@ -1349,7 +1349,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   defp soft_keyboard_listener_pad do
     key_listener = solve(Showcase.App, :key_listener)
 
-    column([width(max(px(240), fill())), spacing(8)], [
+    column([width(min(px(240), fill())), spacing(8)], [
       el([Font.size(12), Font.color(panel_title())], text("Keyboard target: listener")),
       el(
         [

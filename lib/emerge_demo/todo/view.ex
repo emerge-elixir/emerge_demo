@@ -32,6 +32,7 @@ defmodule EmergeDemo.Todo.View do
     column(
       [
         width(fill()),
+        height(min(content(), fill())),
         Border.rounded(2),
         card_shadow()
       ],

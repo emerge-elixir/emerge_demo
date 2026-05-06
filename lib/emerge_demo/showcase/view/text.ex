@@ -163,7 +163,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp font_sizes_demo do
     el(
       [
-        width(max(px(320), fill())),
+        width(min(px(320), fill())),
         padding(12),
         Background.color(color_rgb(45, 45, 65)),
         Border.rounded(8)
@@ -185,7 +185,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp font_weight_style_demo do
     el(
       [
-        width(max(px(320), fill())),
+        width(min(px(320), fill())),
         padding(12),
         Background.color(color_rgb(45, 45, 65)),
         Border.rounded(8)
@@ -269,7 +269,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp paragraph_demo do
     el(
       [
-        width(max(px(400), fill())),
+        width(min(px(400), fill())),
         padding(12),
         Background.color(color_rgb(45, 45, 65)),
         Border.rounded(8)
@@ -287,7 +287,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp inline_spans_demo do
     el(
       [
-        width(max(px(450), fill())),
+        width(min(px(450), fill())),
         padding(12),
         Background.color(color_rgb(45, 45, 65)),
         Border.rounded(8)
@@ -581,7 +581,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp decoration_chip(label, font_attrs, bg) do
     el(
       [
-        width(max(px(210), fill())),
+        width(min(px(210), fill())),
         padding(8),
         Background.color(bg),
         Border.rounded(6),
@@ -595,7 +595,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp spacing_chip(label, font_attrs, bg) do
     el(
       [
-        width(max(px(210), fill())),
+        width(min(px(210), fill())),
         padding(8),
         Background.color(bg),
         Border.rounded(6),
@@ -609,7 +609,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   defp alignment_card(label, alignment_attr) do
     el(
       [
-        width(max(px(180), fill())),
+        width(min(px(180), fill())),
         padding(8),
         Background.color(color_rgb(55, 55, 80)),
         Border.rounded(4)
@@ -619,7 +619,7 @@ defmodule EmergeDemo.Showcase.View.Text do
   end
 
   defp line_spacing_card(label, spacing_value, copy) do
-    column([width(max(px(320), fill())), spacing(6)], [
+    column([width(min(px(320), fill())), spacing(6)], [
       el([Font.size(11), Font.color(body_text())], text(label)),
       el(
         [

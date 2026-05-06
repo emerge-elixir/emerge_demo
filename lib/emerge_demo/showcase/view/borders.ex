@@ -751,7 +751,7 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
     el(
       [
-        width(max(px(280), fill())),
+        width(min(px(280), fill())),
         padding(12),
         Background.color(color_rgb(245, 247, 251)),
         Border.rounded(12),

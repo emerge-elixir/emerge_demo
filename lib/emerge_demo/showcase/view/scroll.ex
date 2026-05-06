@@ -79,7 +79,7 @@ defmodule EmergeDemo.Showcase.View.Scroll do
   defp horizontal_scroll_example do
     el(
       [
-        width(max(px(360), fill())),
+        width(min(px(360), fill())),
         height(px(92)),
         padding(10),
         scrollbar_x(),
@@ -93,7 +93,7 @@ defmodule EmergeDemo.Showcase.View.Scroll do
   defp both_axes_scroll_example do
     el(
       [
-        width(max(px(320), fill())),
+        width(min(px(320), fill())),
         height(px(200)),
         padding(12),
         scrollbar_x(),
@@ -179,7 +179,7 @@ defmodule EmergeDemo.Showcase.View.Scroll do
 
   defp horizontal_scroll_code do
     ~S"""
-    el([width(max(px(360), fill())), height(px(92)), scrollbar_x()],
+    el([width(min(px(360), fill())), height(px(92)), scrollbar_x()],
       row([spacing(10)], [
         text("Design"),
         text("Docs"),
@@ -192,7 +192,7 @@ defmodule EmergeDemo.Showcase.View.Scroll do
 
   defp both_axes_scroll_code do
     ~S"""
-    el([width(max(px(320), fill())), height(px(200)), scrollbar_x(), scrollbar_y()],
+    el([width(min(px(320), fill())), height(px(200)), scrollbar_x(), scrollbar_y()],
       el([width(px(640)), height(px(360))],
         text("Oversized canvas")
       )

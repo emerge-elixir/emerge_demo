@@ -29,8 +29,8 @@ defmodule EmergeDemo.Showcase.View.Nearby do
         {:nearby, :slots},
         nearby_slots_code(),
         wrapped_row([width(fill()), spacing_xy(12, 12)], [
-          el([width(max(px(340), fill()))], nearby_slot_card()),
-          el([width(max(px(340), fill()))], nearby_behind_content_card())
+          el([width(min(px(340), fill()))], nearby_slot_card()),
+          el([width(min(px(340), fill()))], nearby_behind_content_card())
         ])
       )
     ])
@@ -48,8 +48,8 @@ defmodule EmergeDemo.Showcase.View.Nearby do
         {:nearby, :escape_layout},
         escape_layout_code(),
         wrapped_row([width(fill()), spacing_xy(12, 12)], [
-          el([width(max(px(360), fill()))], nearby_toolbar_escape_card()),
-          el([width(max(px(320), fill()))], nearby_overflow_card())
+          el([width(min(px(360), fill()))], nearby_toolbar_escape_card()),
+          el([width(min(px(320), fill()))], nearby_overflow_card())
         ])
       )
     ])
@@ -83,8 +83,8 @@ defmodule EmergeDemo.Showcase.View.Nearby do
         {:nearby, :clip_nearby},
         clip_nearby_code(),
         wrapped_row([width(fill()), spacing_xy(12, 12)], [
-          el([width(max(px(320), fill()))], nearby_clip_card("Unclipped escape", false)),
-          el([width(max(px(320), fill()))], nearby_clip_card("clip_nearby()", true))
+          el([width(min(px(320), fill()))], nearby_clip_card("Unclipped escape", false)),
+          el([width(min(px(320), fill()))], nearby_clip_card("clip_nearby()", true))
         ])
       )
     ])

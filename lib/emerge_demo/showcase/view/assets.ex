@@ -202,7 +202,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp assets_overview_showcase do
     wrapped_row([width(fill()), spacing_xy(16, 16)], [
-      column([width(max(px(240), fill())), spacing(8)], [
+      column([width(min(px(240), fill())), spacing(8)], [
         el([Font.color(color(:slate, 500)), Font.size(14)], text("image/2")),
         el(
           [
@@ -216,7 +216,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
           )
         )
       ]),
-      column([width(max(px(320), fill())), spacing(8)], [
+      column([width(min(px(320), fill())), spacing(8)], [
         el([Font.color(color(:slate, 500)), Font.size(14)], text("Background.image/2")),
         el(
           [
@@ -369,7 +369,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp centered_wrapped_cards(cards, max_width) do
     el(
-      [center_x(), width(max(px(max_width), fill()))],
+      [center_x(), width(min(px(max_width), fill()))],
       wrapped_row([width(fill()), spacing_xy(12, 12)], cards)
     )
   end

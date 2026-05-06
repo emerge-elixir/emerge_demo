@@ -20,7 +20,7 @@ defmodule EmergeDemo.Showcase.View.CodeBlock do
 
   defp code_block_attrs do
     [
-      width(max(px(460), fill())),
+      width(min(px(460), fill())),
       padding(12),
       spacing(10),
       Background.color(surface_bg()),

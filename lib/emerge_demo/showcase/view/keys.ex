@@ -249,7 +249,7 @@ defmodule EmergeDemo.Showcase.View.Keys do
   defp comparison_panel(title, note, content) do
     column(
       [
-        width(max(px(320), fill())),
+        width(min(px(320), fill())),
         spacing(10),
         padding(14),
         Background.color(panel_bg()),
@@ -302,7 +302,7 @@ defmodule EmergeDemo.Showcase.View.Keys do
   defp shortcut_chip(title, detail) do
     column(
       [
-        width(max(px(220), fill())),
+        width(min(px(220), fill())),
         spacing(4),
         padding(12),
         Background.color(shortcut_bg()),
