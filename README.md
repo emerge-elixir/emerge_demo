@@ -53,7 +53,7 @@ mix test
 
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
-- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, and interaction.
+- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, and interaction, including controlled text, slider, and button inputs.
 
 ## Project Layout
 

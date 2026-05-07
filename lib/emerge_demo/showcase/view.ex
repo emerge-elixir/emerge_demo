@@ -153,7 +153,7 @@ defmodule EmergeDemo.Showcase.View do
   end
 
   defp current_page_summary(:interaction) do
-    "Compare decorative pointer states with swipe gestures, transformed hit testing, text input, buttons, focused key listeners, and virtual keys. Hover and interact with the demos to inspect the code."
+    "Compare decorative pointer states with swipe gestures, transformed hit testing, text input, sliders, buttons, focused key listeners, and virtual keys. Hover and interact with the demos to inspect the code."
   end
 
   defp current_page_summary(_page) do

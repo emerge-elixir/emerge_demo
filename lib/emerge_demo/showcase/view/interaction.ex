@@ -3,6 +3,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   use Solve.Lookup, :helpers
 
   alias EmergeDemo.Showcase
+  alias EmergeDemo.Showcase.AssetCatalog
   alias EmergeDemo.Showcase.View
 
   # Page composition
@@ -17,6 +18,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       text_input_section(),
       multiline_input_section(),
       input_styles_section(),
+      slider_input_section(),
       input_button_section(),
       key_listener_section(),
       virtual_keyboard_section()
@@ -276,6 +278,22 @@ defmodule EmergeDemo.Showcase.View.Interaction do
             )
           ])
         )
+      )
+    ])
+  end
+
+  defp slider_input_section do
+    column([width(fill()), spacing(16)], [
+      section_title("Slider Input"),
+      section_copy(
+        "Input.slider is a controlled numeric input. Pointer drag and focused keyboard updates emit numeric on_change payloads, while Slider.config owns range, step, track, filled-track, and thumb slots."
+      ),
+      interaction_example(
+        "Input.slider + Slider.config",
+        "Drag the rails, click the tracks, or focus a slider and use arrow keys, Home, End, PageUp, and PageDown. The custom examples use normal Emerge elements as the track and thumb.",
+        {:interaction, :slider_input},
+        slider_input_code(),
+        slider_input_demo()
       )
     ])
   end
@@ -1754,6 +1772,229 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp field_controller, do: solve(Showcase.App, :multiline_input)
 
+  defp slider_input_demo() do
+    slider_input = solve(Showcase.App, :slider_input)
+
+    el(
+      [
+        width(fill()),
+        padding(14),
+        Background.color(panel_bg()),
+        Border.rounded(10)
+      ],
+      column([spacing(14)], [
+        wrapped_row([width(fill()), spacing_xy(8, 8)], [
+          status_chip(
+            "Volume",
+            slider_value_label(slider_input.volume),
+            color_rgb(64, 78, 108),
+            color_rgb(220, 232, 248)
+          ),
+          status_chip(
+            "Accent",
+            slider_value_label(slider_input.accent),
+            color_rgb(80, 72, 120),
+            color_rgb(238, 232, 252)
+          ),
+          status_chip(
+            "Rotated",
+            slider_value_label(slider_input.vertical),
+            color_rgb(68, 92, 88),
+            color_rgb(226, 244, 236)
+          ),
+          status_chip(
+            "Changes",
+            slider_input.change_count,
+            color_rgb(98, 78, 112),
+            color_rgb(246, 232, 248)
+          )
+        ]),
+        slider_row(
+          "Standard element slots",
+          "A track, filled track, and thumb built from el/2.",
+          volume_slider(slider_input)
+        ),
+        slider_row(
+          "SVG track and thumb",
+          "The track and thumb are regular SVG elements; only track width is owned by the slider.",
+          accent_slider(slider_input)
+        ),
+        row([width(fill()), spacing(18), align_top()], [
+          rotated_slider(slider_input),
+          column([width(fill()), spacing(10)], [
+            el([Font.size(12), Font.color(panel_title())], text("Rotated local geometry")),
+            paragraph([width(fill()), spacing(3), Font.size(11), Font.color(panel_muted())], [
+              text(
+                "There is no orientation option here. The slider remains horizontal in local coordinates and rotate(-90) handles presentation plus hit testing."
+              )
+            ]),
+            el(
+              [Font.size(11), Font.color(color_rgb(230, 234, 246))],
+              text("Last change: #{slider_input.last}")
+            ),
+            Input.button(
+              [
+                width(px(120)),
+                padding_xy(10, 8),
+                Background.color(color_rgb(64, 72, 110)),
+                Border.rounded(8),
+                Border.width(1),
+                Border.color(color_rgb(138, 150, 206)),
+                Font.size(12),
+                Font.color(color(:white)),
+                Event.on_press(event(slider_input, :reset)),
+                Interactive.mouse_over([
+                  Background.color(color_rgb(78, 86, 126)),
+                  Border.color(color_rgb(196, 208, 238))
+                ]),
+                Interactive.mouse_down([
+                  Background.color(color_rgb(58, 62, 90)),
+                  Transform.move_y(1)
+                ])
+              ],
+              text("Reset")
+            )
+          ])
+        ])
+      ])
+    )
+  end
+
+  defp slider_row(title, note, slider) do
+    column([width(fill()), spacing(8)], [
+      row([width(fill()), spacing(10)], [
+        column([width(px(190)), spacing(4)], [
+          el([Font.size(12), Font.color(panel_title())], text(title)),
+          paragraph([width(fill()), spacing(3), Font.size(10), Font.color(panel_muted())], [
+            text(note)
+          ])
+        ]),
+        el([width(fill()), center_y()], slider)
+      ])
+    ])
+  end
+
+  defp volume_slider(slider_input) do
+    Input.slider(
+      [
+        key(:showcase_volume_slider),
+        width(fill()),
+        height(px(38)),
+        Slider.config(
+          min: 0,
+          max: 100,
+          step: 5,
+          track: slider_track(color_rgb(70, 76, 108), 8),
+          filled_track: slider_track(color_rgb(132, 170, 238), 8),
+          thumb: slider_thumb(color_rgb(242, 246, 255), color_rgb(132, 170, 238))
+        ),
+        Event.on_change(event(slider_input, :volume_changed)),
+        Interactive.focused([
+          Border.glow(color_rgba(132, 170, 238, 90 / 255), 2)
+        ])
+      ],
+      slider_input.volume
+    )
+  end
+
+  defp accent_slider(slider_input) do
+    Input.slider(
+      [
+        key(:showcase_accent_slider),
+        width(fill()),
+        height(px(44)),
+        Slider.config(
+          min: 0,
+          max: 100,
+          step: :any,
+          track:
+            svg(
+              [height(px(12)), image_fit(:cover), Border.rounded(999)],
+              AssetCatalog.tile_quad()
+            ),
+          filled_track: slider_track(color_rgba(80, 80, 80, 150 / 255), 12),
+          thumb:
+            svg(
+              [width(px(30)), height(px(30)), image_fit(:contain)],
+              AssetCatalog.weather_icon_source(:sun)
+            )
+        ),
+        Event.on_change(event(slider_input, :accent_changed)),
+        Interactive.focused([
+          Border.glow(color_rgba(255, 220, 120, 90 / 255), 2)
+        ])
+      ],
+      slider_input.accent
+    )
+  end
+
+  defp rotated_slider(slider_input) do
+    el(
+      [
+        width(px(96)),
+        height(px(228)),
+        padding(14),
+        Background.color(color_rgb(40, 46, 66)),
+        Border.rounded(12),
+        Border.width(1),
+        Border.color(color_rgb(96, 116, 128))
+      ],
+      Input.slider(
+        [
+          key(:showcase_rotated_slider),
+          width(px(180)),
+          height(px(38)),
+          center_x(),
+          center_y(),
+          rotate(-90),
+          Slider.config(
+            min: 0,
+            max: 100,
+            step: 10,
+            track: slider_track(color_rgb(68, 84, 92), 8),
+            filled_track: slider_track(color_rgb(126, 204, 176), 8),
+            thumb: slider_thumb(color_rgb(228, 252, 242), color_rgb(126, 204, 176))
+          ),
+          Event.on_change(event(slider_input, :vertical_changed)),
+          Interactive.focused([
+            Border.glow(color_rgba(126, 204, 176, 90 / 255), 2)
+          ])
+        ],
+        slider_input.vertical
+      )
+    )
+  end
+
+  defp slider_track(bg, track_height) do
+    el(
+      [
+        height(px(track_height)),
+        Background.color(bg),
+        Border.rounded(999)
+      ],
+      none()
+    )
+  end
+
+  defp slider_thumb(bg, border) do
+    el(
+      [
+        width(px(24)),
+        height(px(24)),
+        Background.color(bg),
+        Border.rounded(999),
+        Border.width(2),
+        Border.color(border),
+        Border.shadow(offset: {0, 4}, blur: 10, size: 0, color: color_rgba(0, 0, 0, 90 / 255))
+      ],
+      none()
+    )
+  end
+
+  defp slider_value_label(value) do
+    :erlang.float_to_binary(value * 1.0, decimals: 1)
+  end
+
   # Code previews
 
   defp interactive_states_code do
@@ -1892,6 +2133,30 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       "Style showcase input"
     )
+    """
+  end
+
+  defp slider_input_code do
+    ~S"""
+    slider_input = solve(Showcase.App, :slider_input)
+
+    Input.slider(
+      [
+        width(fill()),
+        Slider.config(
+          min: 0,
+          max: 100,
+          step: 5,
+          track: el([height(px(8)), Background.color(color(:slate, 600))], none()),
+          filled_track: el([height(px(8)), Background.color(color(:sky, 400))], none()),
+          thumb: svg([width(px(30)), height(px(30))], AssetCatalog.weather_icon_source(:sun))
+        ),
+        Event.on_change(event(slider_input, :accent_changed))
+      ],
+      slider_input.accent
+    )
+
+    Input.slider([rotate(-90), Slider.config(step: 10)], slider_input.vertical)
     """
   end
 

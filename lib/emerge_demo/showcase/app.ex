@@ -31,6 +31,7 @@ defmodule EmergeDemo.Showcase.App do
         }
       ),
       controller!(name: :multiline_input, module: Showcase.MultilineInput),
+      controller!(name: :slider_input, module: Showcase.SliderInput),
       controller!(
         name: :input_button,
         module: Showcase.InputButton,
