@@ -5,7 +5,7 @@ defmodule EmergeDemo.Application do
 
   @impl true
   def start(_type, _args) do
-    opts = [strategy: :one_for_one, name: EmergeDemo.Supervisor]
+    opts = [strategy: :rest_for_one, name: EmergeDemo.Supervisor]
     Supervisor.start_link(children(), opts)
   end
 
@@ -19,6 +19,7 @@ defmodule EmergeDemo.Application do
       EmergeDemo.Todo.App.child_spec([]),
       EmergeDemo.Showcase.App.child_spec([]),
       EmergeDemo.AppSelector.App.child_spec([]),
+      EmergeDemo.PrimeSource.child_spec(name: EmergeDemo.PrimeSource),
       EmergeDemo
     ]
   end

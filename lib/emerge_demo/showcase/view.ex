@@ -11,6 +11,7 @@ defmodule EmergeDemo.Showcase.View do
     Interaction,
     Keys,
     Layout,
+    Prime,
     Scroll,
     Text
   }
@@ -19,7 +20,7 @@ defmodule EmergeDemo.Showcase.View do
 
   # Domain composition and state wiring
 
-  def layout do
+  def layout(prime_target \\ nil) do
     pages = solve(Showcase.App, :pages)
 
     el(
@@ -35,7 +36,7 @@ defmodule EmergeDemo.Showcase.View do
         ],
         [
           page_header(pages),
-          active_page(pages)
+          active_page(pages, prime_target)
         ]
       )
     )
@@ -89,7 +90,7 @@ defmodule EmergeDemo.Showcase.View do
     )
   end
 
-  defp active_page(%{current: current}) do
+  defp active_page(%{current: current}, prime_target) do
     el(
       [padding(16), width(fill()), height(fill())],
       el(
@@ -111,6 +112,7 @@ defmodule EmergeDemo.Showcase.View do
           :scroll -> Scroll.layout()
           :keys -> Keys.layout()
           :interaction -> Interaction.layout()
+          :prime -> Prime.layout(prime_target)
           _other -> none()
         end
       )
@@ -154,6 +156,10 @@ defmodule EmergeDemo.Showcase.View do
 
   defp current_page_summary(:interaction) do
     "Compare decorative pointer states with swipe gestures, transformed hit testing, text input, sliders, buttons, focused key listeners, and virtual keys. Hover and interact with the demos to inspect the code."
+  end
+
+  defp current_page_summary(:prime) do
+    "Validate the full headless OpenGL → GBM DMA-BUF export → generic PRIME import → Skia video presentation path using a second live viewport."
   end
 
   defp current_page_summary(_page) do

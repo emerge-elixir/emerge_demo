@@ -11,7 +11,8 @@ defmodule EmergeDemo.Showcase.Pages do
     %{id: :nearby, label: "Nearby"},
     %{id: :scroll, label: "Scroll"},
     %{id: :keys, label: "Keys"},
-    %{id: :interaction, label: "Interaction"}
+    %{id: :interaction, label: "Interaction"},
+    %{id: :prime, label: "PRIME"}
   ]
   @page_ids Enum.map(@pages, & &1.id)
 

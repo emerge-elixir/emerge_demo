@@ -53,13 +53,14 @@ mix test
 
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
-- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, and interaction, including controlled text, slider, and button inputs.
+- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, and Linux PRIME output.
+- The `PRIME` tab shows an animated scene produced by a second headless viewport and imported into the main window as DMA-BUF video frames.
 
 ## Project Layout
 
 A good place to start is the top-level app selector.
 
-`lib/emerge_demo.ex` is the viewport entrypoint. Its `render/0` function renders `EmergeDemo.AppSelector.View`, so that is the first layer of the app.
+`lib/emerge_demo.ex` is the viewport entrypoint. Its `render/1` function renders `EmergeDemo.AppSelector.View`, so that is the first layer of the app.
 
 `lib/emerge_demo/app_selector/` contains a small `Solve` app that owns the active screen and decides whether the viewport shows `Todo` or `Showcase`.
 
@@ -68,6 +69,18 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 `lib/emerge_demo/todo/view.ex` shows the other side of that setup: it reads exposed state with `Solve.Lookup` and renders the Todo UI with `Emerge`.
 
 `lib/emerge_demo/showcase/` follows the same broad pattern, but is organized as smaller focused examples instead of one app flow.
+
+## PRIME Validation
+
+The `prime-validation` branch uses the local `../emerge-headless` worktree. On Linux it starts:
+
+1. the regular Wayland showcase viewport;
+2. a 640×420 headless OpenGL viewport;
+3. a direct `Emerge.connect_video_output/3` connection that transports canonical `%VideoInterop.Frame{}` values and retires each lease after native GPU use.
+
+Open **Showcase → PRIME**. A `STREAMING` badge and the animated export/import/present cards confirm the complete GBM/EGL DMA-BUF path. `FAILED` means the page could not initialize or submit the stream; inspect the application log for the native probe diagnostics.
+
+The process needs permission to open a compatible `/dev/dri/renderD*` or card node. Container device cgroups and seat/session ACLs can deny access even when filesystem mode bits look permissive.
 
 ## Notes
 

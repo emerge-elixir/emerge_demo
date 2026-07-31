@@ -23,10 +23,10 @@ defmodule EmergeDemo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:emerge, "~> 0.3.1"},
+      {:emerge, path: "../emerge-headless"},
       {:solve, "~> 0.2.0"},
       {:file_system, "~> 1.0", only: :dev},
-      {:rustler, "~> 0.37", optional: true}
+      {:rustler, "~> 0.38", optional: true}
     ]
   end
 end
