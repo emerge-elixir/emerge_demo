@@ -23,6 +23,7 @@ defmodule EmergeDemo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:video_interop, path: "../video_interop", override: true},
       {:emerge, path: "../emerge-headless"},
       {:solve, "~> 0.2.0"},
       {:file_system, "~> 1.0", only: :dev},

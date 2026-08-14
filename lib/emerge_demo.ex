@@ -15,15 +15,14 @@ defmodule EmergeDemo do
 
   @impl Viewport
   def mount(opts) do
-    send(self(), :bootstrap_prime_target)
-
     viewport_opts =
       Keyword.merge(
         [
           emerge_skia: [
             otp_app: :emerge_demo,
+            backend: :wayland,
             title: "Emerge Example",
-            rendering_api: :opengl,
+            rendering_api: EmergeDemo.Application.main_rendering_api(),
             # backend: :drm,
             # drm_card: "/dev/dri/card0",
             assets: AssetCatalog.renderer_assets_config(),
@@ -35,7 +34,15 @@ defmodule EmergeDemo do
         opts
       )
 
-    {:ok, %{prime_connection: nil, prime_target: nil, prime_status: :starting}, viewport_opts}
+    prime_status =
+      if EmergeDemo.Application.prime_validation?() do
+        send(self(), :bootstrap_prime_target)
+        :starting
+      else
+        {:error, :prime_validation_disabled}
+      end
+
+    {:ok, %{prime_connection: nil, prime_target: nil, prime_status: prime_status}, viewport_opts}
   end
 
   @impl Viewport
@@ -159,8 +166,14 @@ defmodule EmergeDemo do
 
   defp connect_prime_source(target) do
     case Process.whereis(PrimeSource) do
-      nil -> {:error, :source_unavailable}
-      source -> Emerge.connect_video_output(source, target, notify: self())
+      nil ->
+        {:error, :source_unavailable}
+
+      source ->
+        Emerge.connect_video_output(source, target,
+          notify: self(),
+          acquire_sync: :sync_file
+        )
     end
   end
 end

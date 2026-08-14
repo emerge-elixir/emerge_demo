@@ -13,11 +13,15 @@ defmodule EmergeDemo.PrimeSource do
 
   @impl Viewport
   def mount(opts) do
+    prime_opts =
+      [max_in_flight: 3, on_backpressure: :drop_new]
+      |> maybe_put_drm_node(EmergeDemo.Application.prime_drm_node())
+
     defaults = [
       emerge_skia: [
         otp_app: :emerge_demo,
         backend: :headless,
-        rendering_api: :opengl,
+        rendering_api: EmergeDemo.Application.prime_source_rendering_api(),
         width: @width,
         height: @height,
         renderer_cache: [enabled: true],
@@ -25,13 +29,16 @@ defmodule EmergeDemo.PrimeSource do
         headless: [
           mode: :prime,
           target_fps: 30,
-          prime: [max_in_flight: 3, on_backpressure: :drop_new]
+          prime: prime_opts
         ]
       ]
     ]
 
     {:ok, Keyword.merge(defaults, opts)}
   end
+
+  defp maybe_put_drm_node(opts, nil), do: opts
+  defp maybe_put_drm_node(opts, drm_node), do: Keyword.put(opts, :drm_node, drm_node)
 
   @impl Viewport
   def render do

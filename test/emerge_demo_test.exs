@@ -16,21 +16,38 @@ defmodule EmergeDemoTest do
     assert_receive {:"$gen_cast", {:emerge_viewport, :flush}}
   end
 
-  test "mount configures the window renderer for PRIME import" do
-    assert {:ok, %{prime_connection: nil, prime_target: nil, prime_status: :starting}, opts} =
-             EmergeDemo.mount([])
+  test "mount configures the Wayland Vulkan renderer" do
+    assert {:ok,
+            %{
+              prime_connection: nil,
+              prime_target: nil,
+              prime_status: {:error, :prime_validation_disabled}
+            }, opts} = EmergeDemo.mount([])
 
     assert opts[:emerge_skia] == [
              otp_app: :emerge_demo,
+             backend: :wayland,
              title: "Emerge Example",
-             rendering_api: :opengl,
+             rendering_api: :vulkan,
              assets: AssetCatalog.renderer_assets_config(),
              renderer_cache: [enabled: true],
              renderer_stats_log: true,
              render_log: false
            ]
 
-    assert_receive :bootstrap_prime_target
+    refute_receive :bootstrap_prime_target
+  end
+
+  test "PRIME source has an independently configured rendering API" do
+    assert {:ok, opts} = EmergeDemo.PrimeSource.mount([])
+    renderer_opts = opts[:emerge_skia]
+
+    assert renderer_opts[:rendering_api] == :opengl
+
+    assert renderer_opts[:headless][:prime] == [
+             max_in_flight: 3,
+             on_backpressure: :drop_new
+           ]
   end
 
   test "dev children include the hot reloader" do
@@ -45,19 +62,19 @@ defmodule EmergeDemoTest do
     assert Enum.all?(opts[:dirs], &is_binary/1)
   end
 
-  test "dev children preserve direct PRIME shutdown ordering" do
-    assert EmergeDemo.Application.children(:dev)
-           |> Enum.take(5)
+  test "dev children omit PRIME production while matrix validation is disabled" do
+    children = EmergeDemo.Application.children(:dev)
+
+    assert children
+           |> Enum.take(4)
            |> Enum.map(&child_module/1) == [
              EmergeDemo.Todo.App,
              EmergeDemo.Showcase.App,
              EmergeDemo.AppSelector.App,
-             EmergeDemo.PrimeSource,
              EmergeDemo
            ]
 
-    assert %{start: {EmergeDemo.PrimeSource, :start_link, [[name: EmergeDemo.PrimeSource]]}} =
-             Enum.at(EmergeDemo.Application.children(:dev), 3)
+    refute Enum.any?(children, &(child_module(&1) == EmergeDemo.PrimeSource))
   end
 
   defp child_module(%{start: {module, :start_link, _args}}), do: module

@@ -127,8 +127,16 @@ defmodule EmergeDemo.Showcase.View.Prime do
 
   defp validation_steps do
     wrapped_row([width(fill()), spacing_xy(12, 12)], [
-      step_card("1", "Headless render", "OpenGL renders the second viewport offscreen."),
-      step_card("2", "PRIME export", "GBM exports an ABGR8888 DMA-BUF descriptor."),
+      step_card(
+        "1",
+        "Headless render",
+        "OpenGL or Vulkan renders the second viewport offscreen."
+      ),
+      step_card(
+        "2",
+        "PRIME export",
+        "The producer exports a linear ABGR8888 DMA-BUF descriptor."
+      ),
       step_card(
         "3",
         "Direct connection",

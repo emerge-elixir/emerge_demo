@@ -14,14 +14,32 @@ defmodule EmergeDemo.Application do
   def children(:dev), do: base_children() ++ [hot_reload_child()]
   def children(_other), do: base_children()
 
+  def prime_validation?, do: config(:prime_validation?, true)
+
+  def main_rendering_api, do: config(:main_rendering_api, :vulkan)
+
+  def prime_source_rendering_api, do: config(:prime_source_rendering_api, :opengl)
+
+  def prime_drm_node, do: config(:prime_drm_node, nil)
+
+  defp config(key, default) do
+    :emerge_demo
+    |> Application.get_env(__MODULE__, [])
+    |> Keyword.get(key, default)
+  end
+
   defp base_children do
     [
       EmergeDemo.Todo.App.child_spec([]),
       EmergeDemo.Showcase.App.child_spec([]),
-      EmergeDemo.AppSelector.App.child_spec([]),
-      EmergeDemo.PrimeSource.child_spec(name: EmergeDemo.PrimeSource),
-      EmergeDemo
-    ]
+      EmergeDemo.AppSelector.App.child_spec([])
+    ] ++ prime_source_children() ++ [EmergeDemo]
+  end
+
+  defp prime_source_children do
+    if prime_validation?(),
+      do: [EmergeDemo.PrimeSource.child_spec(name: EmergeDemo.PrimeSource)],
+      else: []
   end
 
   defp hot_reload_child do

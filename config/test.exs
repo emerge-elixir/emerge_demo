@@ -1,3 +1,5 @@
 import Config
 
-config :emerge_demo, EmergeDemo.Application, auto_start?: false
+config :emerge_demo, EmergeDemo.Application,
+  auto_start?: false,
+  prime_validation?: false

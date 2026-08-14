@@ -5,16 +5,14 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 ## Requirements
 
 - Elixir `~> 1.19`
-- Linux with a working Wayland session, or macOS 15+
-
-### Platform Notes
-
-- `Emerge` `~> 0.2.0` supports Linux and macOS.
-- Linux: Ubuntu 24.04 or newer should work with the precompiled `emerge` binary.
+- Linux with a working Wayland session and hardware Vulkan driver
+- A Rust toolchain plus the native graphics build dependencies for `emerge`
+- Sibling checkouts at `../emerge-headless` and `../video_interop`
 
 ## Run Locally
 
-This starts the demo in dev mode with hot reloading enabled for files under `lib`.
+This checkout builds the local Emerge NIF with Wayland Vulkan enabled and starts the demo in dev mode with hot reloading enabled for files under `lib`.
+
 ```bash
 mix deps.get
 iex -S mix
@@ -33,15 +31,7 @@ Dev mode uses `file_system` to watch files under `lib` and trigger hot code relo
 - Linux: install `inotify-tools` so the watcher backend can run.
 - macOS: hot reload uses the native FSEvents watcher. No separate `inotify`-style package is needed, but Xcode or the Command Line Tools should be installed.
 
-If the precompiled `emerge` NIF does not load on your distro, rebuild `emerge` locally instead:
-
-```bash
-mix deps.clean --build emerge
-EMERGE_SKIA_BUILD=1 mix deps.compile emerge
-```
-
-This requires a Rust toolchain plus the native graphics build dependencies for `emerge` on your platform.
-
+The demo uses the sibling `video_interop` checkout directly; no `VIDEO_INTEROP_PATH` environment variable is required.
 
 ## Test
 
@@ -72,21 +62,30 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 
 ## PRIME Validation
 
-The `prime-validation` branch uses the local `../emerge-headless` worktree. On Linux it starts:
+The producer and main renderer APIs are independently selectable for the required four-way matrix:
 
-1. the regular Wayland showcase viewport;
-2. a 640×420 headless OpenGL viewport;
-3. a direct `Emerge.connect_video_output/3` connection that transports canonical `%VideoInterop.Frame{}` values and retires each lease after native GPU use.
+```bash
+EMERGE_DEMO_PRIME_VALIDATION=1 \
+EMERGE_DEMO_PRIME_SOURCE_RENDERING_API=opengl \
+EMERGE_DEMO_MAIN_RENDERING_API=opengl \
+mix run --no-halt
+```
 
-Open **Showcase → PRIME**. A `STREAMING` badge and the animated export/import/present cards confirm the complete GBM/EGL DMA-BUF path. `FAILED` means the page could not initialize or submit the stream; inspect the application log for the native probe diagnostics.
+Use `opengl` or `vulkan` for each API variable. On multi-GPU systems, also set `EMERGE_DEMO_PRIME_DRM_NODE` to the exact allocation node, such as `/dev/dri/renderD128`. PRIME validation remains disabled by default until the full five-minute, synchronization-validation, delayed-fence, resize/restart, fault, and byte-equality acceptance matrix passes.
 
-The process needs permission to open a compatible `/dev/dri/renderD*` or card node. Container device cgroups and seat/session ACLs can deny access even when filesystem mode bits look permissive.
+Run the fresh-process candidate matrix smoke with byte-exact solid-frame, animated replacement, hide/show, reconnect, shutdown, FD, and steady-RSS checks:
+
+```bash
+EMERGE_DEMO_PRIME_DRM_NODE=/dev/dri/renderD128 ./scripts/prime-matrix.sh
+```
+
+A single route can be selected with `./scripts/prime-matrix.sh <producer-api> <main-api>`. For the five-minute 30 FPS soak portion, set `EMERGE_DEMO_PRIME_SOAK_FRAMES=9000 EMERGE_DEMO_PRIME_REQUIRE_RATE=1`. The harness takes `/tmp/emerge-performance.lock` before starting any route.
 
 ## Notes
 
-- Linux renderer backend defaults to Wayland
-- window title defaults to `Emerge Example`
-- dev mode enables the `Emerge` code reloader for `lib`
+- The main window explicitly uses the Wayland Vulkan renderer.
+- The window title defaults to `Emerge Example`.
+- Dev mode enables the `Emerge` code reloader for `lib`.
 
 ## References
 
