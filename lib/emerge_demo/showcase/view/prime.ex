@@ -63,11 +63,11 @@ defmodule EmergeDemo.Showcase.View.Prime do
         column([width(fill()), spacing(6)], [
           el(
             [Font.size(18), Font.bold(), Font.color(color_rgb(31, 44, 74))],
-            text("Live zero-copy validation")
+            text("Live zero-copy PRIME path")
           ),
           paragraph([width(fill()), Font.size(14), Font.color(color_rgb(82, 96, 126))], [
             text(
-              "A second headless viewport exports its animated scene as DMA-BUFs. This tab imports those buffers into a renderer-owned video target and presents them in the main Wayland viewport."
+              "A headless Emerge viewport renders this animated scene into exportable GPU memory. PRIME shares each frame with the main Wayland renderer as a DMA-BUF, avoiding CPU readback and pixel copies."
             )
           ])
         ]),
@@ -129,20 +129,24 @@ defmodule EmergeDemo.Showcase.View.Prime do
     wrapped_row([width(fill()), spacing_xy(12, 12)], [
       step_card(
         "1",
-        "Headless render",
-        "OpenGL or Vulkan renders the second viewport offscreen."
+        "Render offscreen",
+        "OpenGL renders into GBM buffers; Vulkan renders into exportable images."
       ),
       step_card(
         "2",
-        "PRIME export",
-        "The producer exports a linear ABGR8888 DMA-BUF descriptor."
+        "Export with PRIME",
+        "The producer exports each linear ABGR8888 buffer as a DMA-BUF with a GPU sync fence."
       ),
       step_card(
         "3",
-        "Direct connection",
-        "Emerge transfers canonical frames into the main renderer."
+        "Connect directly",
+        "Emerge submits each frame directly to a video target in the main renderer."
       ),
-      step_card("4", "Lease retirement", "Producer buffers retire only after GPU consumption.")
+      step_card(
+        "4",
+        "Reuse safely",
+        "The producer reuses a buffer only after the consumer has finished reading it."
+      )
     ])
   end
 

@@ -159,7 +159,14 @@ defmodule EmergeDemo.Showcase.View do
   end
 
   defp current_page_summary(:prime) do
-    "Validate the full headless OpenGL → GBM DMA-BUF export → generic PRIME import → Skia video presentation path using a second live viewport."
+    rendering_api =
+      case EmergeDemo.Application.prime_source_rendering_api() do
+        :opengl -> "OpenGL"
+        :vulkan -> "Vulkan"
+        _other -> "GPU"
+      end
+
+    "Follow a live frame from the headless #{rendering_api} renderer through DMA-BUF export and PRIME import to a Skia video target in the main Wayland viewport."
   end
 
   defp current_page_summary(_page) do

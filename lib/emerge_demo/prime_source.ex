@@ -58,7 +58,7 @@ defmodule EmergeDemo.PrimeSource do
               Font.bold(),
               Font.color(color_rgb(255, 255, 255))
             ],
-            text("Headless PRIME viewport")
+            text("Headless PRIME source")
           ),
           el(
             [
@@ -73,7 +73,7 @@ defmodule EmergeDemo.PrimeSource do
         ]),
         paragraph([width(fill()), Font.size(16), Font.color(color_rgb(218, 226, 249))], [
           text(
-            "This scene is rendered by a second Emerge viewport into offscreen GBM buffers, exported through PRIME, and imported by the Showcase window."
+            "This animated scene is rendered offscreen by a second Emerge viewport. PRIME exports each frame as a DMA-BUF for direct import into the Showcase window."
           )
         ]),
         animated_validation_scene()
@@ -93,11 +93,19 @@ defmodule EmergeDemo.PrimeSource do
         Border.color(color_rgba(255, 255, 255, 0.2))
       ],
       row([width(fill()), height(fill()), spacing(24)], [
-        validation_card("EXPORT", "GBM + EGL", color_rgb(69, 201, 183), -12),
-        validation_card("IMPORT", "EGLImage", color_rgb(116, 153, 255), 12),
-        validation_card("PRESENT", "Skia video", color_rgb(227, 132, 255), -12)
+        validation_card("RENDER", rendering_api_label(), color_rgb(69, 201, 183), -12),
+        validation_card("EXPORT", "DMA-BUF", color_rgb(116, 153, 255), 12),
+        validation_card("PRESENT", "Skia", color_rgb(227, 132, 255), -12)
       ])
     )
+  end
+
+  defp rendering_api_label do
+    case EmergeDemo.Application.prime_source_rendering_api() do
+      :opengl -> "OpenGL"
+      :vulkan -> "Vulkan"
+      _other -> "GPU"
+    end
   end
 
   defp validation_card(title, detail, color, travel) do
