@@ -17,8 +17,13 @@ defmodule EmergeDemoTest do
   end
 
   test "mount configures the Wayland Vulkan renderer" do
-    assert {:ok, %{video: {{:error, :prime_validation_disabled}, nil}}, opts} =
-             EmergeDemo.mount([])
+    assert {:ok,
+            %{
+              video_targets: %{
+                dma_buf: {{:error, :video_interop_disabled}, nil},
+                binary: {{:error, :video_interop_disabled}, nil}
+              }
+            }, opts} = EmergeDemo.mount([])
 
     assert opts[:emerge_skia] == [
              otp_app: :emerge_demo,
@@ -30,11 +35,9 @@ defmodule EmergeDemoTest do
              renderer_stats_log: true,
              render_log: false
            ]
-
-    refute_receive :bootstrap_prime_target
   end
 
-  test "PRIME source has an independently configured rendering API" do
+  test "DMA-BUF source has an independently configured rendering API" do
     assert {:ok, opts} = EmergeDemo.PrimeSource.mount(video_output_target: self())
     renderer_opts = opts[:emerge_skia]
 
@@ -58,7 +61,7 @@ defmodule EmergeDemoTest do
     assert Enum.all?(opts[:dirs], &is_binary/1)
   end
 
-  test "dev children omit PRIME production while matrix validation is disabled" do
+  test "dev children omit video producers while Video Interop is disabled" do
     children = EmergeDemo.Application.children(:dev)
 
     assert children
@@ -71,6 +74,7 @@ defmodule EmergeDemoTest do
            ]
 
     refute Enum.any?(children, &(child_module(&1) == EmergeDemo.PrimeSource))
+    refute Enum.any?(children, &(child_module(&1) == EmergeDemo.BinarySource))
   end
 
   defp child_module(%{start: {module, :start_link, _args}}), do: module

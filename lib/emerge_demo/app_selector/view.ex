@@ -15,12 +15,12 @@ defmodule EmergeDemo.AppSelector.View do
   @shell_focus_border color_rgb(158, 174, 220)
   @shell_focus_glow color_rgba(116, 138, 210, 0.28)
 
-  def layout(prime_target \\ nil) do
+  def layout(video_targets \\ nil) do
     selector = solve(AppSelector.App, :screens)
 
     el(
       root_attrs(selector),
-      active_screen(prime_target)
+      active_screen(video_targets)
     )
   end
 
@@ -204,11 +204,11 @@ defmodule EmergeDemo.AppSelector.View do
     )
   end
 
-  defp active_screen(prime_target) do
+  defp active_screen(video_targets) do
     selector = solve(AppSelector.App, :screens)
 
     case selector.current do
-      :showcase -> Showcase.View.layout(prime_target)
+      :showcase -> Showcase.View.layout(video_targets)
       :todo -> Todo.View.layout()
       _other -> Todo.View.layout()
     end

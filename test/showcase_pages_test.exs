@@ -3,7 +3,7 @@ defmodule EmergeDemo.Showcase.PagesTest do
 
   alias EmergeDemo.Showcase.Pages
 
-  test "exposes showcase pages including PRIME validation" do
+  test "exposes showcase pages including Video Interop" do
     state = Pages.init(%{}, %{})
 
     assert %{current: :layout, pages: pages} = Pages.expose(state, %{}, %{})
@@ -17,14 +17,14 @@ defmodule EmergeDemo.Showcase.PagesTest do
              %{id: :scroll, label: "Scroll"},
              %{id: :keys, label: "Keys"},
              %{id: :interaction, label: "Interaction"},
-             %{id: :prime, label: "PRIME"}
+             %{id: :video_interop, label: "Video Interop"}
            ]
   end
 
-  test "set_page switches to PRIME" do
+  test "set_page switches to Video Interop" do
     state = %{current: :layout}
 
-    assert %{current: :prime} = Pages.set_page(:prime, state)
+    assert %{current: :video_interop} = Pages.set_page(:video_interop, state)
   end
 
   test "set_page ignores invalid page ids" do

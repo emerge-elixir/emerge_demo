@@ -8,7 +8,8 @@ defmodule EmergeDemo do
 
   alias EmergeDemo.Showcase.AssetCatalog
 
-  @video_target :headless_prime_validation
+  @dma_buf_target :headless_prime_validation
+  @binary_target :headless_binary_validation
 
   @impl Viewport
   def mount(opts) do
@@ -31,16 +32,24 @@ defmodule EmergeDemo do
         opts
       )
 
-    video =
-      if EmergeDemo.Application.prime_validation?(),
-        do: {:streaming, @video_target},
-        else: {{:error, :prime_validation_disabled}, nil}
+    video_targets =
+      if EmergeDemo.Application.prime_validation?() do
+        %{
+          dma_buf: {:streaming, @dma_buf_target},
+          binary: {:streaming, @binary_target}
+        }
+      else
+        %{
+          dma_buf: {{:error, :video_interop_disabled}, nil},
+          binary: {{:error, :video_interop_disabled}, nil}
+        }
+      end
 
-    {:ok, %{video: video}, viewport_opts}
+    {:ok, %{video_targets: video_targets}, viewport_opts}
   end
 
   @impl Viewport
-  def render(state), do: EmergeDemo.AppSelector.View.layout(state.video)
+  def render(state), do: EmergeDemo.AppSelector.View.layout(state.video_targets)
 
   @impl Viewport
   def handle_info(%Solve.Message{} = message, state) do

@@ -12,7 +12,7 @@ defmodule EmergeDemo.Showcase.Pages do
     %{id: :scroll, label: "Scroll"},
     %{id: :keys, label: "Keys"},
     %{id: :interaction, label: "Interaction"},
-    %{id: :prime, label: "PRIME"}
+    %{id: :video_interop, label: "Video Interop"}
   ]
   @page_ids Enum.map(@pages, & &1.id)
 

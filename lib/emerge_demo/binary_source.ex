@@ -1,6 +1,6 @@
-defmodule EmergeDemo.PrimeSource do
+defmodule EmergeDemo.BinarySource do
   @moduledoc """
-  GPU headless viewport used as a live DMA-BUF producer for the Video Interop tab.
+  CPU headless viewport used as a live RGBA8888 binary producer for the Video Interop tab.
   """
 
   use Emerge
@@ -15,33 +15,26 @@ defmodule EmergeDemo.PrimeSource do
   def mount(opts) do
     {video_output_target, opts} = Keyword.pop!(opts, :video_output_target)
 
-    prime_opts =
-      [max_in_flight: 3, on_backpressure: :drop_new]
-      |> maybe_put_drm_node(EmergeDemo.Application.prime_drm_node())
-
     defaults = [
       emerge_skia: [
         otp_app: :emerge_demo,
         backend: :headless,
-        rendering_api: EmergeDemo.Application.prime_source_rendering_api(),
+        rendering_api: :raster,
         width: @width,
         height: @height,
         renderer_cache: [enabled: true],
         renderer_stats_log: true,
         headless: [
-          mode: :prime,
+          mode: :binary,
           target: video_output_target,
           target_fps: 30,
-          prime: prime_opts
+          pixel_format: :rgba8888
         ]
       ]
     ]
 
     {:ok, Keyword.merge(defaults, opts)}
   end
-
-  defp maybe_put_drm_node(opts, nil), do: opts
-  defp maybe_put_drm_node(opts, drm_node), do: Keyword.put(opts, :drm_node, drm_node)
 
   @impl Viewport
   def render do
@@ -50,7 +43,7 @@ defmodule EmergeDemo.PrimeSource do
         width(fill()),
         height(fill()),
         padding(28),
-        Background.gradient(color_rgb(24, 36, 76), color_rgb(83, 50, 130), 24)
+        Background.gradient(color_rgb(16, 72, 70), color_rgb(27, 112, 94), 24)
       ],
       column([width(fill()), height(fill()), spacing(20)], [
         row([width(fill())], [
@@ -61,7 +54,7 @@ defmodule EmergeDemo.PrimeSource do
               Font.bold(),
               Font.color(color_rgb(255, 255, 255))
             ],
-            text("Headless GPU source")
+            text("Headless CPU source")
           ),
           el(
             [
@@ -69,14 +62,14 @@ defmodule EmergeDemo.PrimeSource do
               Background.color(color_rgba(255, 255, 255, 0.16)),
               Border.rounded(999),
               Font.size(13),
-              Font.color(color_rgb(235, 242, 255))
+              Font.color(color_rgb(235, 255, 250))
             ],
-            text("DMA-BUF • ABGR8888")
+            text("BINARY • RGBA8888")
           )
         ]),
-        paragraph([width(fill()), Font.size(16), Font.color(color_rgb(218, 226, 249))], [
+        paragraph([width(fill()), Font.size(16), Font.color(color_rgb(211, 242, 235))], [
           text(
-            "This scene is rendered offscreen by a GPU-backed Emerge viewport and exported as a DMA-BUF for direct import through VideoInterop."
+            "This scene is rendered by Skia's CPU raster backend into an owned RGBA8888 binary and imported by the Showcase renderer through VideoInterop."
           )
         ]),
         animated_validation_scene()
@@ -96,19 +89,11 @@ defmodule EmergeDemo.PrimeSource do
         Border.color(color_rgba(255, 255, 255, 0.2))
       ],
       row([width(fill()), height(fill()), spacing(24)], [
-        validation_card("RENDER", rendering_api_label(), color_rgb(69, 201, 183), -12),
-        validation_card("EXPORT", "DMA-BUF", color_rgb(116, 153, 255), 12),
-        validation_card("PRESENT", "Skia", color_rgb(227, 132, 255), -12)
+        validation_card("RENDER", "CPU", color_rgb(45, 212, 191), -12),
+        validation_card("STORE", "Binary", color_rgb(34, 197, 94), 12),
+        validation_card("IMPORT", "RGBA", color_rgb(250, 204, 21), -12)
       ])
     )
-  end
-
-  defp rendering_api_label do
-    case EmergeDemo.Application.prime_source_rendering_api() do
-      :opengl -> "OpenGL"
-      :vulkan -> "Vulkan"
-      _other -> "GPU"
-    end
   end
 
   defp validation_card(title, detail, color, travel) do

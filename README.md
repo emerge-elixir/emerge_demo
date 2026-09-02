@@ -43,8 +43,8 @@ mix test
 
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
-- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, and Linux PRIME output.
-- The `PRIME` tab shows an animated scene produced by a second headless viewport and imported into the main window as DMA-BUF video frames.
+- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, and VideoInterop.
+- The `Video Interop` tab compares two animated headless viewports: a GPU producer imported from a DMA-BUF and a CPU raster producer imported from an owned RGBA8888 binary.
 
 ## Project Layout
 
@@ -60,9 +60,9 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 
 `lib/emerge_demo/showcase/` follows the same broad pattern, but is organized as smaller focused examples instead of one app flow.
 
-## PRIME Validation
+## Video Interop Validation
 
-The producer and main renderer APIs are independently selectable for the required four-way matrix:
+The tab always uses a CPU RGBA8888 binary producer. The GPU DMA-BUF producer and main renderer APIs are independently selectable for the required four-way matrix:
 
 ```bash
 EMERGE_DEMO_PRIME_VALIDATION=1 \
@@ -71,7 +71,7 @@ EMERGE_DEMO_MAIN_RENDERING_API=opengl \
 mix run --no-halt
 ```
 
-Use `opengl` or `vulkan` for each API variable. On multi-GPU systems, also set `EMERGE_DEMO_PRIME_DRM_NODE` to the exact allocation node, such as `/dev/dri/renderD128`. PRIME validation remains disabled by default until the full five-minute, synchronization-validation, delayed-fence, resize/restart, fault, and byte-equality acceptance matrix passes.
+Use `opengl` or `vulkan` for each API variable. On multi-GPU systems, also set `EMERGE_DEMO_PRIME_DRM_NODE` to the exact allocation node, such as `/dev/dri/renderD128`. VideoInterop validation remains disabled by default until the full five-minute, synchronization-validation, delayed-fence, resize/restart, fault, and byte-equality acceptance matrix passes.
 
 Run the fresh-process candidate matrix smoke with byte-exact solid-frame, animated replacement, hide/show, reconnect, shutdown, FD, and steady-RSS checks:
 

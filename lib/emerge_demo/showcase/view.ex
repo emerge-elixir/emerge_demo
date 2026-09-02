@@ -11,16 +11,16 @@ defmodule EmergeDemo.Showcase.View do
     Interaction,
     Keys,
     Layout,
-    Prime,
     Scroll,
-    Text
+    Text,
+    VideoInterop
   }
 
   alias EmergeDemo.Showcase.View.Nearby, as: NearbyPage
 
   # Domain composition and state wiring
 
-  def layout(prime_target \\ nil) do
+  def layout(video_targets \\ nil) do
     pages = solve(Showcase.App, :pages)
 
     el(
@@ -36,7 +36,7 @@ defmodule EmergeDemo.Showcase.View do
         ],
         [
           page_header(pages),
-          active_page(pages, prime_target)
+          active_page(pages, video_targets)
         ]
       )
     )
@@ -90,7 +90,7 @@ defmodule EmergeDemo.Showcase.View do
     )
   end
 
-  defp active_page(%{current: current}, prime_target) do
+  defp active_page(%{current: current}, video_targets) do
     el(
       [padding(16), width(fill()), height(fill())],
       el(
@@ -112,7 +112,7 @@ defmodule EmergeDemo.Showcase.View do
           :scroll -> Scroll.layout()
           :keys -> Keys.layout()
           :interaction -> Interaction.layout()
-          :prime -> Prime.layout(prime_target)
+          :video_interop -> VideoInterop.layout(video_targets)
           _other -> none()
         end
       )
@@ -158,7 +158,7 @@ defmodule EmergeDemo.Showcase.View do
     "Compare decorative pointer states with swipe gestures, transformed hit testing, text input, sliders, buttons, focused key listeners, and virtual keys. Hover and interact with the demos to inspect the code."
   end
 
-  defp current_page_summary(:prime) do
+  defp current_page_summary(:video_interop) do
     rendering_api =
       case EmergeDemo.Application.prime_source_rendering_api() do
         :opengl -> "OpenGL"
@@ -166,7 +166,7 @@ defmodule EmergeDemo.Showcase.View do
         _other -> "GPU"
       end
 
-    "Follow a live frame from the headless #{rendering_api} renderer through DMA-BUF export and PRIME import to a Skia video target in the main Wayland viewport."
+    "Compare live frames from a headless #{rendering_api} DMA-BUF producer and a CPU RGBA8888 binary producer as VideoInterop transports both into the main Wayland viewport."
   end
 
   defp current_page_summary(_page) do
