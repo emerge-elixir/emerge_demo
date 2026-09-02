@@ -1,3 +1,31 @@
+defmodule EmergeDemo.PrimeMatrixPipeline do
+  use Membrane.Pipeline
+
+  def start_link(main, owner) do
+    Membrane.Pipeline.start_link(__MODULE__, {main, owner})
+  end
+
+  @impl true
+  def handle_init(_ctx, {main, owner}) do
+    spec =
+      child(:source, %Membrane.VideoInterop.Source{notify: self()})
+      |> child(:sink, %Membrane.VideoInterop.Sink{
+        submit: {EmergeDemo.PrimeMatrixRoute, :submit, [main]},
+        target: :prime_matrix
+      })
+
+    {[spec: spec], %{owner: owner}}
+  end
+
+  @impl true
+  def handle_info({:video_interop_source_ready, source}, _ctx, state) do
+    send(state.owner, {:prime_matrix_source_ready, self(), source})
+    {[], state}
+  end
+
+  def handle_info(_message, _ctx, state), do: {[], state}
+end
+
 defmodule EmergeDemo.PrimeMatrixRoute do
   use Emerge
 
@@ -27,16 +55,12 @@ defmodule EmergeDemo.PrimeMatrixRoute do
         stats: true
       )
 
-    {:ok, target} =
-      EmergeSkia.video_target(main,
-        id: "prime-matrix",
-        width: @width,
-        height: @height,
-        mode: :prime
-      )
-
+    target = :prime_matrix
     EmergeSkia.upload_tree(main, consumer_tree(target))
     Process.sleep(250)
+
+    {:ok, _supervisor, pipeline} = EmergeDemo.PrimeMatrixPipeline.start_link(main, self())
+    frame_source = await_frame_source(pipeline)
 
     {:ok, source} =
       EmergeSkia.start(
@@ -49,19 +73,12 @@ defmodule EmergeDemo.PrimeMatrixRoute do
         stats: true,
         headless: [
           mode: :prime,
+          target: frame_source,
           prime: [drm_node: drm_node, max_in_flight: 3]
         ]
       )
 
-    {:ok, first_connection} =
-      EmergeSkia.HeadlessPrimeSession.connect(source, target,
-        notify: self(),
-        acquire_sync: :sync_file
-      )
-
-    await_connection(first_connection)
     soak(source, 6)
-    await_first_frame(first_connection)
     assert_solid_capture!(main, <<0, 0, 255, 255>>, "warmup")
     assert_submitted_pixels!(main, <<0, 0, 255, 255>>, "warmup")
     steady = resources()
@@ -94,33 +111,15 @@ defmodule EmergeDemo.PrimeMatrixRoute do
     assert_solid_capture!(main, <<255, 0, 0, 255>>, "hide/show")
     assert_submitted_pixels!(main, <<255, 0, 0, 255>>, "hide-show")
 
-    :ok = EmergeSkia.HeadlessPrimeSession.disconnect(source)
+    write_screenshots!(main, producer_api, main_api, "hide-show", <<255, 0, 0, 255>>)
 
-    {:ok, second_connection} =
-      EmergeSkia.HeadlessPrimeSession.connect(source, target,
-        notify: self(),
-        acquire_sync: :sync_file
-      )
-
-    await_connection(second_connection)
-
-    Enum.each(
-      [{0, 128, 0}, {0, 0, 255}, {0, 128, 0}, {0, 0, 255}, {0, 128, 0}],
-      &render_source(source, &1)
-    )
-
-    await_first_frame(second_connection)
-    assert_solid_capture!(main, <<0, 128, 0, 255>>, "reconnect")
-    assert_submitted_pixels!(main, <<0, 128, 0, 255>>, "reconnect")
-    write_screenshots!(main, producer_api, main_api, "reconnect", <<0, 128, 0, 255>>)
-
-    :ok = EmergeSkia.HeadlessPrimeSession.disconnect(source)
     :ok = EmergeSkia.stop(source)
+    :ok = Membrane.Pipeline.terminate(pipeline)
     :ok = EmergeSkia.stop(main)
     source = nil
     main = nil
-    target = nil
-    _ = {source, main, target}
+    pipeline = nil
+    _ = {source, main, pipeline}
     :erlang.garbage_collect(self())
 
     validate_renderer_restart!(producer_api, main_api, drm_node)
@@ -155,16 +154,11 @@ defmodule EmergeDemo.PrimeMatrixRoute do
         renderer_cache: [enabled: true]
       )
 
-    {:ok, target} =
-      EmergeSkia.video_target(main,
-        id: "prime-matrix-restart",
-        width: width,
-        height: height,
-        mode: :prime
-      )
-
-    EmergeSkia.upload_tree(main, consumer_tree(target, width, height))
+    EmergeSkia.upload_tree(main, consumer_tree(:prime_matrix, width, height))
     Process.sleep(250)
+
+    {:ok, _supervisor, pipeline} = EmergeDemo.PrimeMatrixPipeline.start_link(main, self())
+    frame_source = await_frame_source(pipeline)
 
     {:ok, source} =
       EmergeSkia.start(
@@ -176,33 +170,24 @@ defmodule EmergeDemo.PrimeMatrixRoute do
         renderer_cache: [enabled: true],
         headless: [
           mode: :prime,
+          target: frame_source,
           prime: [drm_node: drm_node, max_in_flight: 3]
         ]
       )
-
-    {:ok, connection} =
-      EmergeSkia.HeadlessPrimeSession.connect(source, target,
-        notify: self(),
-        acquire_sync: :sync_file
-      )
-
-    await_connection(connection)
 
     Enum.each(1..6, fn _ ->
       EmergeSkia.upload_tree(source, source_tree({0, 128, 0}, width, height))
       Process.sleep(@frame_pause_ms)
     end)
 
-    await_first_frame(connection)
     assert_submitted_pixels!(main, expected_pixel, "renderer restart", width, height)
-    _target_keepalive = target.ref
-    :ok = EmergeSkia.HeadlessPrimeSession.disconnect(source)
     :ok = EmergeSkia.stop(source)
+    :ok = Membrane.Pipeline.terminate(pipeline)
     :ok = EmergeSkia.stop(main)
     source = nil
     main = nil
-    target = nil
-    _ = {source, main, target}
+    pipeline = nil
+    _ = {source, main, pipeline}
   end
 
   defp parse_api!("opengl"), do: :opengl
@@ -294,30 +279,15 @@ defmodule EmergeDemo.PrimeMatrixRoute do
     Process.sleep(@frame_pause_ms)
   end
 
-  defp await_connection(connection_ref) do
-    receive do
-      {:emerge_video_output, _producer, ^connection_ref, :connected} -> :ok
-    after
-      2_000 -> raise("timed out waiting for PRIME connection")
-    end
+  def submit(frame, target, renderer) do
+    EmergeSkia.submit_video_frame(renderer, target, frame)
   end
 
-  defp await_first_frame(connection_ref) do
+  defp await_frame_source(pipeline) do
     receive do
-      {:emerge_video_output, _producer, ^connection_ref, {:first_frame_accepted, sequence}}
-      when is_integer(sequence) ->
-        :ok
-
-      {:emerge_video_output, _producer, ^connection_ref, {:error, reason}} ->
-        raise("PRIME connection failed before its first frame: #{inspect(reason)}")
-
-      {:emerge_video_output, _producer, ^connection_ref, :disconnected} ->
-        raise("PRIME connection disconnected before its first frame")
+      {:prime_matrix_source_ready, ^pipeline, source} -> source
     after
-      2_000 ->
-        raise(
-          "timed out waiting for first accepted PRIME frame: #{inspect(Process.info(self(), :messages))}"
-        )
+      2_000 -> raise("timed out waiting for Membrane VideoInterop source")
     end
   end
 

@@ -3,8 +3,6 @@ defmodule EmergeDemo.Showcase.View.Prime do
 
   use Emerge.UI
 
-  alias EmergeSkia.VideoTarget
-
   def layout({{:error, reason}, _target}) do
     column([width(fill()), spacing(18)], [
       intro_card({:error, reason}),
@@ -12,7 +10,7 @@ defmodule EmergeDemo.Showcase.View.Prime do
     ])
   end
 
-  def layout({status, %VideoTarget{} = target}) do
+  def layout({status, target}) when is_atom(target) do
     column([width(fill()), spacing(18)], [
       intro_card(status),
       el(
@@ -139,8 +137,8 @@ defmodule EmergeDemo.Showcase.View.Prime do
       ),
       step_card(
         "3",
-        "Connect directly",
-        "Emerge submits each frame directly to a video target in the main renderer."
+        "Transport with Membrane",
+        "A Membrane VideoInterop source and sink carry each frame into the main viewport."
       ),
       step_card(
         "4",

@@ -1,12 +1,10 @@
 defmodule EmergeDemo.PrimeValidationTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
-  alias Emerge.Runtime.Viewport.State
   alias EmergeDemo.PrimeSource
-  alias EmergeSkia.VideoTarget
 
-  test "headless source configures a directly connectable PRIME viewport" do
-    assert {:ok, opts} = PrimeSource.mount([])
+  test "headless source sends PRIME VideoInterop frames to the Membrane ingress" do
+    assert {:ok, opts} = PrimeSource.mount(video_output_target: self())
 
     refute opts[:viewport]
     assert opts[:emerge_skia][:backend] == :headless
@@ -14,66 +12,29 @@ defmodule EmergeDemo.PrimeValidationTest do
     assert opts[:emerge_skia][:width] == 640
     assert opts[:emerge_skia][:height] == 420
     assert opts[:emerge_skia][:renderer_stats_log]
-    assert opts[:emerge_skia][:headless][:target] == nil
+    assert opts[:emerge_skia][:headless][:target] == self()
     assert opts[:emerge_skia][:headless][:mode] == :prime
     assert opts[:emerge_skia][:headless][:prime][:max_in_flight] == 3
   end
 
-  test "connection diagnostics update only the matching connection incarnation" do
-    connection = make_ref()
-    stale = make_ref()
-    state = viewport_state(connection)
+  test "main viewport uses the atom video target rendered by the Membrane sink" do
+    config = Application.get_env(:emerge_demo, EmergeDemo.Application, [])
+    Application.put_env(:emerge_demo, EmergeDemo.Application, prime_validation?: true)
+    on_exit(fn -> Application.put_env(:emerge_demo, EmergeDemo.Application, config) end)
 
-    assert {:noreply, streaming} =
-             EmergeDemo.handle_info(
-               {:emerge_video_output, self(), connection, {:first_frame_accepted, 7}},
-               state
-             )
-
-    assert streaming.prime_status == :streaming
-
-    assert {:noreply, ^streaming} =
-             EmergeDemo.handle_info(
-               {:emerge_video_output, self(), stale, {:error, :stale}},
-               streaming
-             )
+    assert {:ok, state, _opts} = EmergeDemo.mount([])
+    assert state.video == {:streaming, :headless_prime_validation}
   end
 
-  test "terminal diagnostics preserve the error and retire the target incarnation" do
-    connection = make_ref()
-    state = viewport_state(connection)
+  test "pipeline callback consumes frames while the viewport is unavailable" do
+    frame =
+      VideoInterop.Frame.binary(<<0, 0, 0, 255>>,
+        width: 1,
+        height: 1,
+        pixel_format: :rgba8888
+      )
 
-    assert {:noreply, failed} =
-             EmergeDemo.handle_info(
-               {:emerge_video_output, self(), connection, {:error, :stale_target}},
-               state
-             )
-
-    assert failed.prime_status == {:error, {:submit_failed, :stale_target}}
-
-    assert {:noreply, disconnected} =
-             EmergeDemo.handle_info(
-               {:emerge_video_output, self(), connection, :disconnected},
-               failed
-             )
-
-    assert disconnected.prime_connection == nil
-    assert disconnected.prime_target == nil
-    assert disconnected.prime_status == {:error, {:submit_failed, :stale_target}}
-  end
-
-  defp viewport_state(connection) do
-    %{
-      __emerge__: %State{module: EmergeDemo},
-      prime_connection: connection,
-      prime_status: :waiting,
-      prime_target: %VideoTarget{
-        id: "prime",
-        width: 640,
-        height: 360,
-        mode: :prime,
-        ref: make_ref()
-      }
-    }
+    assert {:error, :viewport_unavailable} =
+             EmergeDemo.VideoPipeline.submit(frame, :headless_prime_validation)
   end
 end

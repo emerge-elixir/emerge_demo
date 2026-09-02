@@ -24,6 +24,8 @@ defmodule EmergeDemo.MixProject do
   defp deps do
     [
       {:video_interop, path: "../video_interop", override: true},
+      {:membrane_video_interop, path: "../membrane_video_interop"},
+      {:membrane_core, "~> 1.3"},
       {:emerge, path: "../emerge-headless"},
       {:solve, "~> 0.2.0"},
       {:file_system, "~> 1.0", only: :dev},

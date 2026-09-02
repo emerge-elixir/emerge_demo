@@ -33,13 +33,18 @@ defmodule EmergeDemo.Application do
       EmergeDemo.Todo.App.child_spec([]),
       EmergeDemo.Showcase.App.child_spec([]),
       EmergeDemo.AppSelector.App.child_spec([])
-    ] ++ prime_source_children() ++ [EmergeDemo]
+    ] ++ video_children() ++ [EmergeDemo.child_spec(name: EmergeDemo)]
   end
 
-  defp prime_source_children do
-    if prime_validation?(),
-      do: [EmergeDemo.PrimeSource.child_spec(name: EmergeDemo.PrimeSource)],
-      else: []
+  defp video_children do
+    if prime_validation?() do
+      [
+        {DynamicSupervisor, strategy: :one_for_one, name: EmergeDemo.VideoSupervisor},
+        EmergeDemo.VideoPipeline
+      ]
+    else
+      []
+    end
   end
 
   defp hot_reload_child do

@@ -13,6 +13,8 @@ defmodule EmergeDemo.PrimeSource do
 
   @impl Viewport
   def mount(opts) do
+    {video_output_target, opts} = Keyword.pop!(opts, :video_output_target)
+
     prime_opts =
       [max_in_flight: 3, on_backpressure: :drop_new]
       |> maybe_put_drm_node(EmergeDemo.Application.prime_drm_node())
@@ -28,6 +30,7 @@ defmodule EmergeDemo.PrimeSource do
         renderer_stats_log: true,
         headless: [
           mode: :prime,
+          target: video_output_target,
           target_fps: 30,
           prime: prime_opts
         ]

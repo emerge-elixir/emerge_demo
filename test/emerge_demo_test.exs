@@ -17,12 +17,8 @@ defmodule EmergeDemoTest do
   end
 
   test "mount configures the Wayland Vulkan renderer" do
-    assert {:ok,
-            %{
-              prime_connection: nil,
-              prime_target: nil,
-              prime_status: {:error, :prime_validation_disabled}
-            }, opts} = EmergeDemo.mount([])
+    assert {:ok, %{video: {{:error, :prime_validation_disabled}, nil}}, opts} =
+             EmergeDemo.mount([])
 
     assert opts[:emerge_skia] == [
              otp_app: :emerge_demo,
@@ -39,7 +35,7 @@ defmodule EmergeDemoTest do
   end
 
   test "PRIME source has an independently configured rendering API" do
-    assert {:ok, opts} = EmergeDemo.PrimeSource.mount([])
+    assert {:ok, opts} = EmergeDemo.PrimeSource.mount(video_output_target: self())
     renderer_opts = opts[:emerge_skia]
 
     assert renderer_opts[:rendering_api] == :opengl
