@@ -7,6 +7,7 @@ defmodule EmergeDemo.VideoPipeline do
 
   alias Membrane.VideoInterop.{Sink, Source}
 
+  @streams [:dma_buf, :binary]
   @dma_buf_target :headless_prime_validation
   @binary_target :headless_binary_validation
 
@@ -29,10 +30,23 @@ defmodule EmergeDemo.VideoPipeline do
       })
     ]
 
-    {[spec: spec], %{sources: %{dma_buf: nil, binary: nil}, notify: Keyword.get(opts, :notify)}}
+    state = %{
+      sources: %{dma_buf: nil, binary: nil},
+      notify: Keyword.get(opts, :notify),
+      viewport_closed?: false
+    }
+
+    {[spec: spec], state}
   end
 
   @impl true
+  def handle_info(
+        {:video_interop_source_ready, _source},
+        _ctx,
+        %{viewport_closed?: true} = state
+      ),
+      do: {[], state}
+
   def handle_info({:video_interop_source_ready, source}, ctx, state) do
     case stream_for_source(ctx.children, source) do
       nil ->
@@ -48,6 +62,13 @@ defmodule EmergeDemo.VideoPipeline do
     end
   end
 
+  def handle_info(
+        {:start_video_source, _stream},
+        _ctx,
+        %{viewport_closed?: true} = state
+      ),
+      do: {[], state}
+
   def handle_info({:start_video_source, stream}, _ctx, state) do
     start_video_source(stream, state)
   end
@@ -55,6 +76,24 @@ defmodule EmergeDemo.VideoPipeline do
   def handle_info(_message, _ctx, state), do: {[], state}
 
   @impl true
+  def handle_child_notification(
+        {:video_interop_sink_error, :viewport_not_ready},
+        _child,
+        _ctx,
+        state
+      ) do
+    Enum.each(@streams, &stop_video_source/1)
+    {[], %{state | sources: %{dma_buf: nil, binary: nil}, viewport_closed?: true}}
+  end
+
+  def handle_child_notification(
+        {:video_interop_sink_error, :viewport_unavailable},
+        _child,
+        _ctx,
+        %{viewport_closed?: true} = state
+      ),
+      do: {[], state}
+
   def handle_child_notification({:video_interop_sink_error, reason}, _child, _ctx, state) do
     report_error(:video_interop_sink_error, reason, state)
   end
@@ -66,7 +105,7 @@ defmodule EmergeDemo.VideoPipeline do
   def handle_child_notification(_notification, _child, _ctx, state), do: {[], state}
 
   defp stream_for_source(children, source) do
-    Enum.find_value([:dma_buf, :binary], fn stream ->
+    Enum.find_value(@streams, fn stream ->
       case Map.get(children, source_child(stream)) do
         %{pid: ^source} -> stream
         _other -> nil

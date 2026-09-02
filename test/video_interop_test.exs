@@ -81,11 +81,66 @@ defmodule EmergeDemo.VideoInteropTest do
     assert {[spec: [_dma_buf_branch, _binary_branch]], state} =
              EmergeDemo.VideoPipeline.handle_init(%{}, [])
 
-    assert state == %{sources: %{dma_buf: nil, binary: nil}, notify: nil}
+    assert state == %{
+             sources: %{dma_buf: nil, binary: nil},
+             notify: nil,
+             viewport_closed?: false
+           }
   end
 
-  test "pipeline forwards child errors without returning an invalid pipeline action" do
-    state = %{sources: %{dma_buf: nil, binary: nil}, notify: self()}
+  test "pipeline stops producers quietly when the main viewport closes" do
+    state = %{
+      sources: %{dma_buf: self(), binary: self()},
+      notify: self(),
+      viewport_closed?: false
+    }
+
+    log =
+      capture_log(fn ->
+        assert {[], closed_state} =
+                 EmergeDemo.VideoPipeline.handle_child_notification(
+                   {:video_interop_sink_error, :viewport_not_ready},
+                   :dma_buf_sink,
+                   %{},
+                   state
+                 )
+
+        assert closed_state.sources == %{dma_buf: nil, binary: nil}
+        assert closed_state.viewport_closed?
+
+        assert {[], ^closed_state} =
+                 EmergeDemo.VideoPipeline.handle_child_notification(
+                   {:video_interop_sink_error, :viewport_unavailable},
+                   :binary_sink,
+                   %{},
+                   closed_state
+                 )
+
+        assert {[], ^closed_state} =
+                 EmergeDemo.VideoPipeline.handle_info(
+                   {:start_video_source, :binary},
+                   %{},
+                   closed_state
+                 )
+
+        assert {[], ^closed_state} =
+                 EmergeDemo.VideoPipeline.handle_info(
+                   {:video_interop_source_ready, self()},
+                   %{},
+                   closed_state
+                 )
+      end)
+
+    assert log == ""
+    refute_receive {:video_interop_sink_error, _reason}
+  end
+
+  test "pipeline forwards unexpected child errors without returning an invalid action" do
+    state = %{
+      sources: %{dma_buf: nil, binary: nil},
+      notify: self(),
+      viewport_closed?: false
+    }
 
     log =
       capture_log(fn ->
