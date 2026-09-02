@@ -1,6 +1,8 @@
 defmodule EmergeDemo.PrimeValidationTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias EmergeDemo.PrimeSource
 
   test "headless source sends PRIME VideoInterop frames to the Membrane ingress" do
@@ -24,6 +26,25 @@ defmodule EmergeDemo.PrimeValidationTest do
 
     assert {:ok, state, _opts} = EmergeDemo.mount([])
     assert state.video == {:streaming, :headless_prime_validation}
+  end
+
+  test "pipeline forwards child errors without returning an invalid pipeline action" do
+    state = %{source: nil, notify: self()}
+
+    log =
+      capture_log(fn ->
+        assert {[], ^state} =
+                 EmergeDemo.VideoPipeline.handle_child_notification(
+                   {:video_interop_sink_error, :rejected},
+                   :sink,
+                   %{},
+                   state
+                 )
+
+        assert_receive {:video_interop_sink_error, :rejected}
+      end)
+
+    assert log =~ "video_interop_sink_error: :rejected"
   end
 
   test "pipeline callback consumes frames while the viewport is unavailable" do

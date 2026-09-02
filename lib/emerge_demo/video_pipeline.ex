@@ -3,6 +3,8 @@ defmodule EmergeDemo.VideoPipeline do
 
   use Membrane.Pipeline
 
+  require Logger
+
   alias Membrane.VideoInterop.{Sink, Source}
 
   @target :headless_prime_validation
@@ -12,12 +14,12 @@ defmodule EmergeDemo.VideoPipeline do
   end
 
   @impl true
-  def handle_init(_ctx, _opts) do
+  def handle_init(_ctx, opts) do
     spec =
       child(:source, %Source{notify: self()})
       |> child(:sink, %Sink{submit: {__MODULE__, :submit, []}, target: @target})
 
-    {[spec: spec], %{source: nil}}
+    {[spec: spec], %{source: nil, notify: Keyword.get(opts, :notify)}}
   end
 
   @impl true
@@ -33,11 +35,11 @@ defmodule EmergeDemo.VideoPipeline do
 
   @impl true
   def handle_child_notification({:video_interop_sink_error, reason}, _child, _ctx, state) do
-    {[notify_parent: {:video_interop_sink_error, reason}], state}
+    report_error(:video_interop_sink_error, reason, state)
   end
 
   def handle_child_notification({:video_interop_source_error, reason}, _child, _ctx, state) do
-    {[notify_parent: {:video_interop_source_error, reason}], state}
+    report_error(:video_interop_source_error, reason, state)
   end
 
   def handle_child_notification(_notification, _child, _ctx, state), do: {[], state}
@@ -76,9 +78,15 @@ defmodule EmergeDemo.VideoPipeline do
              ) do
           {:ok, _pid} -> {[], state}
           {:error, {:already_started, _pid}} -> {[], state}
-          {:error, reason} -> {[notify_parent: {:prime_source_start_failed, reason}], state}
+          {:error, reason} -> report_error(:prime_source_start_failed, reason, state)
         end
     end
+  end
+
+  defp report_error(kind, reason, state) do
+    Logger.error("#{kind}: #{inspect(reason)}")
+    if state.notify, do: send(state.notify, {kind, reason})
+    {[], state}
   end
 
   def submit(frame, target) do
