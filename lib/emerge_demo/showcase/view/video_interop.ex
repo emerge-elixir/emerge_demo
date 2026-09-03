@@ -3,7 +3,13 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
 
   use Emerge.UI
 
-  def layout(%{dma_buf: dma_buf, binary: binary, h264: h264, h264_dmabuf: h264_dmabuf}) do
+  def layout(%{
+        dma_buf: dma_buf,
+        binary: binary,
+        h264: h264,
+        h264_dmabuf: h264_dmabuf,
+        h265_dmabuf: h265_dmabuf
+      }) do
     column([width(fill()), spacing(18)], [
       intro_card(),
       wrapped_row([width(fill()), spacing_xy(16, 16)], [
@@ -18,6 +24,12 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
           "NV12 • VAAPI hardware decode • sync-file",
           "A separate Membrane branch decodes the same clip directly into leased DMA-BUF storage without replacing the standard software-decoded pipeline.",
           h264_dmabuf
+        ),
+        stream_card(
+          "H.265 DMA-BUF playback",
+          "NV12 • VAAPI hardware decode • sync-file",
+          "The shared hardware decoder path decodes an HEVC version of the clip into independently leased DMA-BUF storage.",
+          h265_dmabuf
         ),
         stream_card(
           "GPU DMA-BUF",
@@ -41,7 +53,8 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
       dma_buf: {:starting, nil},
       binary: {:starting, nil},
       h264: {:starting, nil},
-      h264_dmabuf: {:starting, nil}
+      h264_dmabuf: {:starting, nil},
+      h265_dmabuf: {:starting, nil}
     })
   end
 
@@ -64,11 +77,11 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
           ),
           paragraph([width(fill()), Font.size(14), Font.color(color_rgb(82, 96, 126))], [
             text(
-              "Four paths feed the same Emerge viewport through VideoInterop: standard software-decoded H.264, hardware-decoded NV12 DMA-BUF, GPU-rendered DMA-BUF, and an owned CPU RGBA8888 binary."
+              "Five paths feed the same Emerge viewport through VideoInterop: software-decoded H.264, hardware-decoded H.264 and H.265 NV12 DMA-BUF, GPU-rendered DMA-BUF, and an owned CPU RGBA8888 binary."
             )
           ])
         ]),
-        badge("4 STREAMS", color_rgb(220, 252, 231), color_rgb(22, 101, 52))
+        badge("5 STREAMS", color_rgb(220, 252, 231), color_rgb(22, 101, 52))
       ]
     )
   end
@@ -182,18 +195,23 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
       ),
       step_card(
         "3",
+        "Decode H.265 to DMA-BUF",
+        "The shared VAAPI path exports the HEVC clip as leased NV12 storage."
+      ),
+      step_card(
+        "4",
         "Render on the GPU",
         "OpenGL or Vulkan renders into exportable linear ABGR8888 storage."
       ),
       step_card(
-        "4",
+        "5",
         "Render on the CPU",
         "Skia raster renders directly into an owned RGBA8888 binary."
       ),
       step_card(
-        "5",
+        "6",
         "Import by target",
-        "Membrane carries all four streams to viewport-local atom targets."
+        "Membrane carries all five streams to viewport-local atom targets."
       )
     ])
   end

@@ -23,7 +23,8 @@ defmodule EmergeDemoTest do
                 dma_buf: {{:error, :video_interop_disabled}, nil},
                 binary: {{:error, :video_interop_disabled}, nil},
                 h264: {{:error, :video_interop_disabled}, nil},
-                h264_dmabuf: {{:error, :video_interop_disabled}, nil}
+                h264_dmabuf: {{:error, :video_interop_disabled}, nil},
+                h265_dmabuf: {{:error, :video_interop_disabled}, nil}
               }
             }, opts} = EmergeDemo.mount([])
 

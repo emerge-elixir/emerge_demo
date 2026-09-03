@@ -166,7 +166,7 @@ defmodule EmergeDemo.Showcase.View do
         _other -> "GPU"
       end
 
-    "Compare standard and DMA-BUF H.264 playback, a headless #{rendering_api} DMA-BUF producer, and a CPU RGBA8888 binary producer as Membrane and VideoInterop transport all four into the main Wayland viewport."
+    "Compare standard H.264 playback, hardware-decoded H.264 and H.265 DMA-BUF playback, a headless #{rendering_api} DMA-BUF producer, and a CPU RGBA8888 binary producer as Membrane and VideoInterop transport all five into the main Wayland viewport."
   end
 
   defp current_page_summary(_page) do

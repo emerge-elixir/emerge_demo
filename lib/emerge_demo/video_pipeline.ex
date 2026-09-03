@@ -30,7 +30,17 @@ defmodule EmergeDemo.VideoPipeline do
     :h264_dmabuf_decoder,
     :h264_dmabuf_sink
   ]
-  @h264_all_children @h264_children ++ @h264_dmabuf_children
+  @h265_dmabuf_target :h265_dmabuf_playback
+  @h265_dmabuf_group :h265_dmabuf_playback
+  @h265_dmabuf_children [
+    :h265_dmabuf_file,
+    :h265_dmabuf_parser,
+    :h265_dmabuf_realtimer,
+    :h265_dmabuf_decoder,
+    :h265_dmabuf_sink
+  ]
+  @playback_children @h264_children ++ @h264_dmabuf_children ++ @h265_dmabuf_children
+  @playback_groups [@h264_group, @h264_dmabuf_group, @h265_dmabuf_group]
 
   def start_link(opts \\ []) do
     Membrane.Pipeline.start_link(__MODULE__, opts, name: __MODULE__)
@@ -50,7 +60,8 @@ defmodule EmergeDemo.VideoPipeline do
         target: @binary_target
       }),
       h264_branch(),
-      h264_dmabuf_branch()
+      h264_dmabuf_branch(),
+      h265_dmabuf_branch()
     ]
 
     state = %{
@@ -106,7 +117,7 @@ defmodule EmergeDemo.VideoPipeline do
         _ctx,
         %{viewport_closed?: false} = state
       )
-      when sink in [:h264_sink, :h264_dmabuf_sink] do
+      when sink in [:h264_sink, :h264_dmabuf_sink, :h265_dmabuf_sink] do
     playback = playback_for_sink(sink)
     restarting_playbacks = MapSet.put(state.restarting_playbacks, playback)
 
@@ -117,7 +128,7 @@ defmodule EmergeDemo.VideoPipeline do
   def handle_element_end_of_stream(_element, _pad, _ctx, state), do: {[], state}
 
   @impl true
-  def handle_child_terminated(child, ctx, state) when child in @h264_all_children do
+  def handle_child_terminated(child, ctx, state) when child in @playback_children do
     playback = playback_for_child(child)
 
     cond do
@@ -149,7 +160,7 @@ defmodule EmergeDemo.VideoPipeline do
       if state.viewport_closed? do
         []
       else
-        [remove_children: [@h264_group, @h264_dmabuf_group]]
+        [remove_children: @playback_groups]
       end
 
     {actions,
@@ -191,6 +202,11 @@ defmodule EmergeDemo.VideoPipeline do
   @doc false
   def h264_source_path do
     Application.app_dir(:emerge_demo, "priv/video/big_buck_bunny_bird.h264")
+  end
+
+  @doc false
+  def h265_source_path do
+    Application.app_dir(:emerge_demo, "priv/video/big_buck_bunny_bird.h265")
   end
 
   defp h264_branch do
@@ -242,17 +258,47 @@ defmodule EmergeDemo.VideoPipeline do
     {branch, group: @h264_dmabuf_group}
   end
 
+  defp h265_dmabuf_branch do
+    branch =
+      child(:h265_dmabuf_file, %Membrane.File.Source{
+        location: h265_source_path(),
+        content_format: Membrane.H265
+      })
+      |> child(:h265_dmabuf_parser, %Membrane.H265.Parser{
+        output_alignment: :au,
+        output_stream_structure: :annexb,
+        generate_best_effort_timestamps: %{framerate: {24, 1}}
+      })
+      |> child(:h265_dmabuf_realtimer, Membrane.Realtimer)
+      |> child(:h265_dmabuf_decoder, %Membrane.H265.Decoder{
+        output: :dmabuf,
+        decoder: :vaapi,
+        hw_device: EmergeDemo.Application.video_decode_drm_node(),
+        max_in_flight: 4
+      })
+      |> child(:h265_dmabuf_sink, %Sink{
+        submit: {__MODULE__, :submit, []},
+        target: @h265_dmabuf_target
+      })
+
+    {branch, group: @h265_dmabuf_group}
+  end
+
   defp playback_for_sink(:h264_sink), do: :h264
   defp playback_for_sink(:h264_dmabuf_sink), do: :h264_dmabuf
+  defp playback_for_sink(:h265_dmabuf_sink), do: :h265_dmabuf
 
   defp playback_for_child(child) when child in @h264_children, do: :h264
   defp playback_for_child(child) when child in @h264_dmabuf_children, do: :h264_dmabuf
+  defp playback_for_child(child) when child in @h265_dmabuf_children, do: :h265_dmabuf
 
   defp playback_group(:h264), do: @h264_group
   defp playback_group(:h264_dmabuf), do: @h264_dmabuf_group
+  defp playback_group(:h265_dmabuf), do: @h265_dmabuf_group
 
   defp playback_branch(:h264), do: h264_branch()
   defp playback_branch(:h264_dmabuf), do: h264_dmabuf_branch()
+  defp playback_branch(:h265_dmabuf), do: h265_dmabuf_branch()
 
   defp playback_stopped?(playback, children) do
     playback
@@ -262,6 +308,7 @@ defmodule EmergeDemo.VideoPipeline do
 
   defp playback_children(:h264), do: @h264_children
   defp playback_children(:h264_dmabuf), do: @h264_dmabuf_children
+  defp playback_children(:h265_dmabuf), do: @h265_dmabuf_children
 
   defp stream_for_source(children, source) do
     Enum.find_value(@headless_streams, fn stream ->

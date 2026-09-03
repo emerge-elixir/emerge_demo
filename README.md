@@ -45,8 +45,8 @@ mix test
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
 - `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, and VideoInterop.
-- The `Video Interop` tab compares four Membrane paths: standard looping H.264 playback decoded to owned RGBA8888, a separate VAAPI-decoded NV12 DMA-BUF stream, a GPU renderer DMA-BUF stream, and a CPU raster owned-binary stream.
-- The bundled H.264 clip is derived from *Big Buck Bunny* under CC BY 3.0; attribution and conversion details are in [`priv/video/README.md`](priv/video/README.md).
+- The `Video Interop` tab compares five Membrane paths: standard looping H.264 playback decoded to owned RGBA8888, separate VAAPI-decoded H.264 and H.265 NV12 DMA-BUF streams, a GPU renderer DMA-BUF stream, and a CPU raster owned-binary stream.
+- The bundled H.264 and H.265 clips are derived from *Big Buck Bunny* under CC BY 3.0; attribution and conversion details are in [`priv/video/README.md`](priv/video/README.md).
 
 ## Project Layout
 
@@ -64,7 +64,7 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 
 ## Video Interop Validation
 
-The tab keeps the standard bundled-file branch (`Membrane.File.Source` → `Membrane.H264.Parser` → `Membrane.H264.FFmpeg.Decoder` → RGBA conversion → real-time playback) and adds a separate hardware branch (`Membrane.File.Source` → `Membrane.H264.Parser` → `Membrane.Realtimer` → `Membrane.H264.Decoder`) that emits leased NV12 DMA-BUF frames with sync-file fences. It also runs the existing CPU RGBA8888 binary and GPU renderer DMA-BUF producers. The GPU producer and main renderer APIs are independently selectable for the required four-way matrix:
+The tab keeps the standard bundled-file branch (`Membrane.File.Source` → `Membrane.H264.Parser` → `Membrane.H264.FFmpeg.Decoder` → RGBA conversion → real-time playback) and adds separate paced hardware branches through `Membrane.H264.Decoder` and `Membrane.H265.Decoder`. Both emit leased NV12 DMA-BUF frames with sync-file fences. It also runs the existing CPU RGBA8888 binary and GPU renderer DMA-BUF producers. The GPU producer and main renderer APIs are independently selectable for the required four-way matrix:
 
 ```bash
 EMERGE_DEMO_PRIME_VALIDATION=1 \

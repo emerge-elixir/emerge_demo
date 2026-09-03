@@ -85,7 +85,7 @@ defmodule EmergeDemo.VideoInteropTest do
     assert :ok = GenServer.stop(viewport)
   end
 
-  test "main viewport exposes separate standard H.264, decoded DMA-BUF, GPU, and binary targets" do
+  test "main viewport exposes separate codec, decoded DMA-BUF, GPU, and binary targets" do
     config = Application.get_env(:emerge_demo, EmergeDemo.Application, [])
     Application.put_env(:emerge_demo, EmergeDemo.Application, prime_validation?: true)
     on_exit(fn -> Application.put_env(:emerge_demo, EmergeDemo.Application, config) end)
@@ -96,17 +96,19 @@ defmodule EmergeDemo.VideoInteropTest do
              dma_buf: {:streaming, :headless_prime_validation},
              binary: {:streaming, :headless_binary_validation},
              h264: {:streaming, :h264_file_playback},
-             h264_dmabuf: {:streaming, :h264_dmabuf_playback}
+             h264_dmabuf: {:streaming, :h264_dmabuf_playback},
+             h265_dmabuf: {:streaming, :h265_dmabuf_playback}
            }
   end
 
-  test "pipeline keeps standard H.264 playback and adds separate decoded DMA-BUF playback" do
+  test "pipeline keeps standard H.264 playback and adds H.264 and H.265 DMA-BUF playback" do
     assert {[
               spec: [
                 _dma_buf_branch,
                 _binary_branch,
                 {h264_branch, group: :h264_playback},
-                {h264_dmabuf_branch, group: :h264_dmabuf_playback}
+                {h264_dmabuf_branch, group: :h264_dmabuf_playback},
+                {h265_dmabuf_branch, group: :h265_dmabuf_playback}
               ]
             ], state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
 
@@ -132,6 +134,17 @@ defmodule EmergeDemo.VideoInteropTest do
                :h264_dmabuf_realtimer,
                :h264_dmabuf_decoder,
                :h264_dmabuf_sink
+             ])
+
+    assert h265_dmabuf_branch.children
+           |> Enum.map(&elem(&1, 0))
+           |> MapSet.new() ==
+             MapSet.new([
+               :h265_dmabuf_file,
+               :h265_dmabuf_parser,
+               :h265_dmabuf_realtimer,
+               :h265_dmabuf_decoder,
+               :h265_dmabuf_sink
              ])
 
     assert state == %{
@@ -264,7 +277,73 @@ defmodule EmergeDemo.VideoInteropTest do
     end
   end
 
-  test "H.264 playback branches restart independently after end of stream" do
+  test "bundled H.265 clip emits valid leased NV12 DMA-BUF frames when VAAPI is available" do
+    if File.exists?(EmergeDemo.Application.video_decode_drm_node()) do
+      spec =
+        child(:file, %Membrane.File.Source{
+          location: EmergeDemo.VideoPipeline.h265_source_path(),
+          content_format: Membrane.H265
+        })
+        |> child(:parser, %Membrane.H265.Parser{
+          output_alignment: :au,
+          output_stream_structure: :annexb,
+          generate_best_effort_timestamps: %{framerate: {24, 1}}
+        })
+        |> child(:realtimer, Membrane.Realtimer)
+        |> child(:decoder, %Membrane.H265.Decoder{
+          output: :dmabuf,
+          decoder: :vaapi,
+          hw_device: EmergeDemo.Application.video_decode_drm_node(),
+          max_in_flight: 4
+        })
+        |> child(:sink, %Membrane.VideoInterop.Sink{
+          submit: {__MODULE__, :consume_decoded_dmabuf, [self()]},
+          target: :test
+        })
+
+      capture_log(fn ->
+        pipeline = Membrane.Testing.Pipeline.start_link_supervised!(spec: spec)
+
+        Enum.each(1..177, fn _index ->
+          assert_receive {:decoded_dmabuf_frame,
+                          %{
+                            coded_size: {480, 270},
+                            stream_storage: %VideoInterop.DMABuf.Format{
+                              fourcc: 0x3231_564E,
+                              modifier: modifier
+                            },
+                            stream_acquire_sync: :sync_file,
+                            stream_colorimetry: %VideoInterop.Colorimetry{
+                              primaries: :bt709,
+                              transfer: :bt709,
+                              matrix: :bt709,
+                              range: :limited,
+                              chroma_location: :left
+                            },
+                            frame_acquire_sync: %VideoInterop.SyncFile{
+                              acquire_fence_fd: acquire_fence_fd
+                            },
+                            descriptor: %VideoInterop.DMABuf.Descriptor{
+                              objects: objects,
+                              layers: layers
+                            },
+                            leased?: true,
+                            validation: :ok
+                          }, :ok},
+                         5_000
+
+          assert modifier != :per_buffer
+          assert acquire_fence_fd >= 0
+          assert objects != []
+          assert layers != []
+        end)
+
+        assert :ok = Membrane.Testing.Pipeline.terminate(pipeline)
+      end)
+    end
+  end
+
+  test "codec playback branches restart independently after end of stream" do
     state = %{
       sources: %{dma_buf: nil, binary: nil},
       notify: nil,
@@ -309,6 +388,25 @@ defmodule EmergeDemo.VideoInteropTest do
              )
 
     assert MapSet.size(dmabuf_restarted.restarting_playbacks) == 0
+
+    assert {[remove_children: :h265_dmabuf_playback], h265_restarting} =
+             EmergeDemo.VideoPipeline.handle_element_end_of_stream(
+               :h265_dmabuf_sink,
+               :input,
+               %{},
+               state
+             )
+
+    assert MapSet.member?(h265_restarting.restarting_playbacks, :h265_dmabuf)
+
+    assert {[spec: {_branch, group: :h265_dmabuf_playback}], h265_restarted} =
+             EmergeDemo.VideoPipeline.handle_child_terminated(
+               :h265_dmabuf_sink,
+               %{children: %{}},
+               h265_restarting
+             )
+
+    assert MapSet.size(h265_restarted.restarting_playbacks) == 0
   end
 
   test "pipeline stops producers quietly when the main viewport closes" do
@@ -321,7 +419,13 @@ defmodule EmergeDemo.VideoInteropTest do
 
     log =
       capture_log(fn ->
-        assert {[remove_children: [:h264_playback, :h264_dmabuf_playback]], closed_state} =
+        assert {[
+                  remove_children: [
+                    :h264_playback,
+                    :h264_dmabuf_playback,
+                    :h265_dmabuf_playback
+                  ]
+                ], closed_state} =
                  EmergeDemo.VideoPipeline.handle_child_notification(
                    {:video_interop_sink_error, :viewport_not_ready},
                    :dma_buf_sink,
