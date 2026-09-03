@@ -3,10 +3,22 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
 
   use Emerge.UI
 
-  def layout(%{dma_buf: dma_buf, binary: binary}) do
+  def layout(%{dma_buf: dma_buf, binary: binary, h264: h264, h264_dmabuf: h264_dmabuf}) do
     column([width(fill()), spacing(18)], [
       intro_card(),
       wrapped_row([width(fill()), spacing_xy(16, 16)], [
+        stream_card(
+          "H.264 file playback",
+          "H.264 • FFmpeg software decode • owned RGBA8888",
+          "A Membrane file source, H.264 parser, FFmpeg decoder, and real-time scheduler loop a freely licensed Big Buck Bunny clip. © Blender Foundation, CC BY 3.0.",
+          h264
+        ),
+        stream_card(
+          "H.264 DMA-BUF playback",
+          "NV12 • VAAPI hardware decode • sync-file",
+          "A separate Membrane branch decodes the same clip directly into leased DMA-BUF storage without replacing the standard software-decoded pipeline.",
+          h264_dmabuf
+        ),
         stream_card(
           "GPU DMA-BUF",
           "ABGR8888 • explicit synchronization",
@@ -25,7 +37,12 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
   end
 
   def layout(_targets) do
-    layout(%{dma_buf: {:starting, nil}, binary: {:starting, nil}})
+    layout(%{
+      dma_buf: {:starting, nil},
+      binary: {:starting, nil},
+      h264: {:starting, nil},
+      h264_dmabuf: {:starting, nil}
+    })
   end
 
   defp intro_card do
@@ -47,11 +64,11 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
           ),
           paragraph([width(fill()), Font.size(14), Font.color(color_rgb(82, 96, 126))], [
             text(
-              "Two headless Emerge viewports send the same kind of animated UI through VideoInterop: one uses leased GPU DMA-BUF storage and the other uses an owned CPU RGBA8888 binary."
+              "Four paths feed the same Emerge viewport through VideoInterop: standard software-decoded H.264, hardware-decoded NV12 DMA-BUF, GPU-rendered DMA-BUF, and an owned CPU RGBA8888 binary."
             )
           ])
         ]),
-        badge("2 STREAMS", color_rgb(220, 252, 231), color_rgb(22, 101, 52))
+        badge("4 STREAMS", color_rgb(220, 252, 231), color_rgb(22, 101, 52))
       ]
     )
   end
@@ -155,23 +172,28 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
     wrapped_row([width(fill()), spacing_xy(12, 12)], [
       step_card(
         "1",
+        "Decode H.264",
+        "File source → parser → FFmpeg decoder → RGBA conversion runs at the clip's cadence."
+      ),
+      step_card(
+        "2",
+        "Decode to DMA-BUF",
+        "A separate VAAPI decoder exports leased NV12 storage with a sync-file."
+      ),
+      step_card(
+        "3",
         "Render on the GPU",
         "OpenGL or Vulkan renders into exportable linear ABGR8888 storage."
       ),
       step_card(
-        "2",
+        "4",
         "Render on the CPU",
         "Skia raster renders directly into an owned RGBA8888 binary."
       ),
       step_card(
-        "3",
-        "Transport both",
-        "Separate Membrane VideoInterop branches retain the latest frame from each producer."
-      ),
-      step_card(
-        "4",
+        "5",
         "Import by target",
-        "The main viewport consumes both frame types through atom video targets."
+        "Membrane carries all four streams to viewport-local atom targets."
       )
     ])
   end

@@ -22,6 +22,8 @@ defmodule EmergeDemo.Application do
 
   def prime_drm_node, do: config(:prime_drm_node, nil)
 
+  def video_decode_drm_node, do: prime_drm_node() || "/dev/dri/renderD128"
+
   defp config(key, default) do
     :emerge_demo
     |> Application.get_env(__MODULE__, [])
@@ -32,8 +34,9 @@ defmodule EmergeDemo.Application do
     [
       EmergeDemo.Todo.App.child_spec([]),
       EmergeDemo.Showcase.App.child_spec([]),
-      EmergeDemo.AppSelector.App.child_spec([])
-    ] ++ video_children() ++ [EmergeDemo.child_spec(name: EmergeDemo)]
+      EmergeDemo.AppSelector.App.child_spec([]),
+      EmergeDemo.child_spec(name: EmergeDemo)
+    ] ++ video_children()
   end
 
   defp video_children do

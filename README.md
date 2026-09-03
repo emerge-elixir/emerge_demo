@@ -7,7 +7,8 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 - Elixir `~> 1.19`
 - Linux with a working Wayland session and hardware Vulkan driver
 - A Rust toolchain plus the native graphics build dependencies for `emerge`
-- Sibling checkouts at `../emerge-headless` and `../video_interop`
+- Sibling checkouts at `../emerge-headless`, `../video_interop`,
+  `../membrane_video_interop`, and `../membrane_video_transcode`
 
 ## Run Locally
 
@@ -44,7 +45,8 @@ mix test
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
 - `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, and VideoInterop.
-- The `Video Interop` tab compares two animated headless viewports: a GPU producer imported from a DMA-BUF and a CPU raster producer imported from an owned RGBA8888 binary.
+- The `Video Interop` tab compares four Membrane paths: standard looping H.264 playback decoded to owned RGBA8888, a separate VAAPI-decoded NV12 DMA-BUF stream, a GPU renderer DMA-BUF stream, and a CPU raster owned-binary stream.
+- The bundled H.264 clip is derived from *Big Buck Bunny* under CC BY 3.0; attribution and conversion details are in [`priv/video/README.md`](priv/video/README.md).
 
 ## Project Layout
 
@@ -62,7 +64,7 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 
 ## Video Interop Validation
 
-The tab always uses a CPU RGBA8888 binary producer. The GPU DMA-BUF producer and main renderer APIs are independently selectable for the required four-way matrix:
+The tab keeps the standard bundled-file branch (`Membrane.File.Source` → `Membrane.H264.Parser` → `Membrane.H264.FFmpeg.Decoder` → RGBA conversion → real-time playback) and adds a separate hardware branch (`Membrane.File.Source` → `Membrane.H264.Parser` → `Membrane.Realtimer` → `Membrane.H264.Decoder`) that emits leased NV12 DMA-BUF frames with sync-file fences. It also runs the existing CPU RGBA8888 binary and GPU renderer DMA-BUF producers. The GPU producer and main renderer APIs are independently selectable for the required four-way matrix:
 
 ```bash
 EMERGE_DEMO_PRIME_VALIDATION=1 \
@@ -71,7 +73,7 @@ EMERGE_DEMO_MAIN_RENDERING_API=opengl \
 mix run --no-halt
 ```
 
-Use `opengl` or `vulkan` for each API variable. On multi-GPU systems, also set `EMERGE_DEMO_PRIME_DRM_NODE` to the exact allocation node, such as `/dev/dri/renderD128`. VideoInterop validation remains disabled by default until the full five-minute, synchronization-validation, delayed-fence, resize/restart, fault, and byte-equality acceptance matrix passes.
+Use `opengl` or `vulkan` for each API variable. On multi-GPU systems, also set `EMERGE_DEMO_PRIME_DRM_NODE` to the exact allocation node, such as `/dev/dri/renderD128`; the VAAPI decoder uses that same node and otherwise defaults to `/dev/dri/renderD128`. VideoInterop validation remains disabled by default until the full five-minute, synchronization-validation, delayed-fence, resize/restart, fault, and byte-equality acceptance matrix passes.
 
 Run the fresh-process candidate matrix smoke with byte-exact solid-frame, animated replacement, hide/show, reconnect, shutdown, FD, and steady-RSS checks:
 

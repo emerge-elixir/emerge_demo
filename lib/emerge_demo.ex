@@ -10,6 +10,8 @@ defmodule EmergeDemo do
 
   @dma_buf_target :headless_prime_validation
   @binary_target :headless_binary_validation
+  @h264_target :h264_file_playback
+  @h264_dmabuf_target :h264_dmabuf_playback
 
   @impl Viewport
   def mount(opts) do
@@ -36,12 +38,16 @@ defmodule EmergeDemo do
       if EmergeDemo.Application.prime_validation?() do
         %{
           dma_buf: {:streaming, @dma_buf_target},
-          binary: {:streaming, @binary_target}
+          binary: {:streaming, @binary_target},
+          h264: {:streaming, @h264_target},
+          h264_dmabuf: {:streaming, @h264_dmabuf_target}
         }
       else
         %{
           dma_buf: {{:error, :video_interop_disabled}, nil},
-          binary: {{:error, :video_interop_disabled}, nil}
+          binary: {{:error, :video_interop_disabled}, nil},
+          h264: {{:error, :video_interop_disabled}, nil},
+          h264_dmabuf: {{:error, :video_interop_disabled}, nil}
         }
       end
 
