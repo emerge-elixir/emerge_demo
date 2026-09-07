@@ -49,12 +49,12 @@ defmodule EmergeDemo.VideoPipeline do
   @impl true
   def handle_init(_ctx, opts) do
     spec = [
-      child(:dma_buf_source, %Source{notify: self()})
+      child(:dma_buf_source, %Source{notify: self(), message_tag: :emerge_skia_frame})
       |> child(:dma_buf_sink, %Sink{
         submit: {__MODULE__, :submit, []},
         target: @dma_buf_target
       }),
-      child(:binary_source, %Source{notify: self()})
+      child(:binary_source, %Source{notify: self(), message_tag: :emerge_skia_frame})
       |> child(:binary_sink, %Sink{
         submit: {__MODULE__, :submit, []},
         target: @binary_target

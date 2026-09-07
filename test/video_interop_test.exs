@@ -85,6 +85,55 @@ defmodule EmergeDemo.VideoInteropTest do
     assert :ok = GenServer.stop(viewport)
   end
 
+  for source_name <- [:dma_buf_source, :binary_source] do
+    test "#{source_name} accepts the headless producer's actual frame message" do
+      {[spec: branches], _state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+
+      source_opts =
+        branches
+        |> Enum.take(2)
+        |> Enum.flat_map(& &1.children)
+        |> Enum.find_value(fn
+          {unquote(source_name), opts, _metadata} -> opts
+          _other -> nil
+        end)
+
+      assert %Membrane.VideoInterop.Source{message_tag: :emerge_skia_frame} = source_opts
+
+      # Use the production ingress options, not hand-written matching tags. Sending a real
+      # raster producer through each ingress catches the silent message-drop regression
+      # without requiring a GPU. The live showcase separately exercises DMA-BUF leases.
+      capture_log(fn ->
+        pipeline =
+          Membrane.Testing.Pipeline.start_link_supervised!(
+            spec: child(:source, source_opts) |> child(:sink, Membrane.Testing.Sink)
+          )
+
+        assert_receive {:video_interop_source_ready, ingress}, 2_000
+        assert {:ok, viewport} = BinarySource.start_link(video_output_target: ingress)
+
+        on_exit(fn ->
+          if Process.alive?(viewport), do: GenServer.stop(viewport)
+        end)
+
+        assert_sink_buffer(
+          pipeline,
+          :sink,
+          %Buffer{
+            payload: %VideoInterop.Frame{storage: %VideoInterop.Binary{data: pixels}} = frame
+          },
+          3_000
+        )
+
+        assert byte_size(pixels) == 640 * 420 * 4
+        assert :ok = VideoInterop.validate(frame)
+        assert :ok = VideoInterop.release(frame)
+        assert :ok = GenServer.stop(viewport)
+        assert :ok = Membrane.Testing.Pipeline.terminate(pipeline)
+      end)
+    end
+  end
+
   test "main viewport exposes separate codec, decoded DMA-BUF, GPU, and binary targets" do
     config = Application.get_env(:emerge_demo, EmergeDemo.Application, [])
     Application.put_env(:emerge_demo, EmergeDemo.Application, prime_validation?: true)
