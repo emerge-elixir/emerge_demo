@@ -7,8 +7,7 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 - Elixir `~> 1.19`
 - Linux with a working Wayland session and hardware Vulkan driver
 - A Rust toolchain plus the native graphics build dependencies for `emerge`
-- Sibling checkouts at `../emerge-headless`, `../video_interop`,
-  `../membrane_video_interop`, and `../membrane_video_transcode`
+- Sibling checkouts at `../emerge-headless` and `../membrane_video_transcode`
 
 ## Run Locally
 
@@ -32,7 +31,8 @@ Dev mode uses `file_system` to watch files under `lib` and trigger hot code relo
 - Linux: install `inotify-tools` so the watcher backend can run.
 - macOS: hot reload uses the native FSEvents watcher. No separate `inotify`-style package is needed, but Xcode or the Command Line Tools should be installed.
 
-The demo uses the sibling `video_interop` checkout directly; no `VIDEO_INTEROP_PATH` environment variable is required.
+The demo resolves `video_interop` and `membrane_video_interop` 0.1 from Hex.
+The local Emerge and transcode checkouts use the same published frame contract.
 
 ## Test
 

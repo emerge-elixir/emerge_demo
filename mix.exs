@@ -23,8 +23,8 @@ defmodule EmergeDemo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:video_interop, path: "../video_interop", override: true},
-      {:membrane_video_interop, path: "../membrane_video_interop"},
+      {:video_interop, "~> 0.1.0"},
+      {:membrane_video_interop, "~> 0.1.0"},
       {:membrane_core, "~> 1.3"},
       {:membrane_file_plugin, "~> 0.17.5"},
       {:membrane_ffmpeg_swscale_plugin, "~> 0.16.5"},
