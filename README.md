@@ -8,13 +8,13 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 - Linux with a working Wayland session and hardware Vulkan driver, or macOS 15+
 - A Rust toolchain plus the native graphics build dependencies for `emerge`
 - FFmpeg 9 development libraries for `membrane_video_transcode` (`brew install ffmpeg` on macOS)
-- Sibling checkouts at `../emerge`, `../membrane_video_transcode`, and `../video_interop`
+- Sibling checkouts at `../emerge` and `../membrane_video_transcode`
 
 ## Run Locally
 
 This checkout uses Wayland Vulkan on Linux and the macOS raster renderer on macOS. It starts in dev mode with hot reloading enabled for files under `lib`.
 
-The local `video_interop` checkout contains the macOS portability fixes. The transcode crate also needs its Cargo `video-interop` dependency patched to `../../../video_interop/rust/video-interop` until those fixes are published. DMA-BUF/VAAPI validation remains Linux-only.
+VideoInterop 0.1.2 includes the macOS portability fixes and is fetched from Hex and crates.io; no local VideoInterop checkout or Cargo patch is needed. DMA-BUF/VAAPI validation remains Linux-only.
 
 ```bash
 mix deps.get
@@ -34,7 +34,7 @@ Dev mode uses `file_system` to watch files under `lib` and trigger hot code relo
 - Linux: install `inotify-tools` so the watcher backend can run.
 - macOS: hot reload uses the native FSEvents watcher. No separate `inotify`-style package is needed, but Xcode or the Command Line Tools should be installed.
 
-The demo resolves `video_interop` from the sibling checkout and `membrane_video_interop` 0.1 from Hex.
+The demo resolves `video_interop` 0.1.2 and `membrane_video_interop` 0.1 from Hex.
 The local Emerge and transcode checkouts use the same published frame contract.
 
 ## Test

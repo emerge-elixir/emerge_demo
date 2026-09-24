@@ -36,6 +36,6 @@
   "solve": {:hex, :solve, "0.2.1", "70fb29e45bb9b6546bb6da8695868aff0fe4c6cb2db56650ac487ad2e34e6489", [:mix], [], "hexpm", "c72c75882924931e1c03ffb72a9073178e90e9e89728fe904328d701e6c3fe27"},
   "telemetry": {:hex, :telemetry, "1.4.2", "a0cb522801dffb1c49fe6e30561badffc7b6d0e180db1300df759faa22062855", [:rebar3], [], "hexpm", "928f6495066506077862c0d1646609eed891a4326bee3126ba54b60af61febb1"},
   "unifex": {:hex, :unifex, "1.2.5", "b557f7f6c2bfd0c451369a9a29323854674bfca9c60c44d4bccc669c4a28477c", [:mix], [{:bunch, "~> 1.0", [hex: :bunch, repo: "hexpm", optional: false]}, {:bundlex, "~> 1.4", [hex: :bundlex, repo: "hexpm", optional: false]}, {:shmex, "~> 0.5.0", [hex: :shmex, repo: "hexpm", optional: false]}], "hexpm", "7c8d473f8e2b43556d792179d9f6d56ff047c252288dc29a554b5a1e1404e528"},
-  "video_interop": {:hex, :video_interop, "0.1.1", "9040c99f8244079243a0d912156aeec6b5be28aadc34862300d265b68f5f1745", [:mix], [], "hexpm", "89d99d90625d7f845fa508971130d508418852a06f2bbafad2e399e4697170c1"},
+  "video_interop": {:hex, :video_interop, "0.1.2", "80f610e9c44aaf00cd2f9fec9ce3f1306e8feef53e8912834aa1e658cd673243", [:mix], [], "hexpm", "3b17ebfb7847b9dc04c61ce70fb1092c90df09f7b5f25d2434aee8a8ee62dff5"},
   "zarex": {:hex, :zarex, "1.0.6", "f657ed1187e6e90472e24c92b1fd5bf3f846e74bd240bd77276c13f336a8d168", [:mix], [], "hexpm", "b628a9b0bc312f278af2c288078c31fd4757224b82d768e91bcf3bedbe3a50e7"},
 }
