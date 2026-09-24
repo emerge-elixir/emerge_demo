@@ -43,7 +43,7 @@ defmodule EmergeDemo.BinarySource do
         width(fill()),
         height(fill()),
         padding(28),
-        Background.gradient(color_rgb(16, 72, 70), color_rgb(27, 112, 94), 24)
+        Background.color(gradient([color_rgb(16, 72, 70), color_rgb(27, 112, 94)], 24))
       ],
       column([width(fill()), height(fill()), spacing(20)], [
         row([width(fill())], [

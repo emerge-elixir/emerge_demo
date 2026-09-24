@@ -5,13 +5,16 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 ## Requirements
 
 - Elixir `~> 1.19`
-- Linux with a working Wayland session and hardware Vulkan driver
+- Linux with a working Wayland session and hardware Vulkan driver, or macOS 15+
 - A Rust toolchain plus the native graphics build dependencies for `emerge`
-- Sibling checkouts at `../emerge-headless` and `../membrane_video_transcode`
+- FFmpeg 9 development libraries for `membrane_video_transcode` (`brew install ffmpeg` on macOS)
+- Sibling checkouts at `../emerge`, `../membrane_video_transcode`, and `../video_interop`
 
 ## Run Locally
 
-This checkout builds the local Emerge NIF with Wayland Vulkan enabled and starts the demo in dev mode with hot reloading enabled for files under `lib`.
+This checkout uses Wayland Vulkan on Linux and the macOS raster renderer on macOS. It starts in dev mode with hot reloading enabled for files under `lib`.
+
+The local `video_interop` checkout contains the macOS portability fixes. The transcode crate also needs its Cargo `video-interop` dependency patched to `../../../video_interop/rust/video-interop` until those fixes are published. DMA-BUF/VAAPI validation remains Linux-only.
 
 ```bash
 mix deps.get
@@ -31,7 +34,7 @@ Dev mode uses `file_system` to watch files under `lib` and trigger hot code relo
 - Linux: install `inotify-tools` so the watcher backend can run.
 - macOS: hot reload uses the native FSEvents watcher. No separate `inotify`-style package is needed, but Xcode or the Command Line Tools should be installed.
 
-The demo resolves `video_interop` and `membrane_video_interop` 0.1 from Hex.
+The demo resolves `video_interop` from the sibling checkout and `membrane_video_interop` 0.1 from Hex.
 The local Emerge and transcode checkouts use the same published frame contract.
 
 ## Test
@@ -39,6 +42,9 @@ The local Emerge and transcode checkouts use the same published frame contract.
 ```bash
 mix test
 ```
+
+The macOS configuration enables the in-process NIF for the headless CPU producer automatically.
+The desktop window uses the separate macOS host, which accepts owned RGBA8888 video frames.
 
 ## Use The App
 
@@ -67,13 +73,19 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 The tab keeps the standard bundled-file branch (`Membrane.File.Source` → `Membrane.H264.Parser` → `Membrane.H264.FFmpeg.Decoder` → RGBA conversion → real-time playback) and adds separate paced hardware branches through `Membrane.H264.Decoder` and `Membrane.H265.Decoder`. Both emit leased NV12 DMA-BUF frames with sync-file fences. It also runs the existing CPU RGBA8888 binary and GPU renderer DMA-BUF producers. The GPU producer and main renderer APIs are independently selectable for the required four-way matrix:
 
 ```bash
-EMERGE_DEMO_PRIME_VALIDATION=1 \
 EMERGE_DEMO_PRIME_SOURCE_RENDERING_API=opengl \
 EMERGE_DEMO_MAIN_RENDERING_API=opengl \
 mix run --no-halt
 ```
 
-Use `opengl` or `vulkan` for each API variable. On multi-GPU systems, also set `EMERGE_DEMO_PRIME_DRM_NODE` to the exact allocation node, such as `/dev/dri/renderD128`; the VAAPI decoder uses that same node and otherwise defaults to `/dev/dri/renderD128`. VideoInterop validation remains disabled by default until the full five-minute, synchronization-validation, delayed-fence, resize/restart, fault, and byte-equality acceptance matrix passes.
+Video Interop starts automatically with no enable flag. Each stream reports its own status;
+unsupported hardware or a failed decoder shows FAILED without stopping the other streams.
+On macOS, the CPU raster producer and software-decoded H.264 stream work with the raster window;
+Linux-only GPU/VAAPI paths report failure.
+
+Use `opengl` or `vulkan` for each Linux API variable, or `raster` for the main renderer.
+On multi-GPU systems, set `EMERGE_DEMO_PRIME_DRM_NODE` to the allocation node, such as
+`/dev/dri/renderD128`; the VAAPI decoder uses that node and defaults to `/dev/dri/renderD128`.
 
 Run the fresh-process candidate matrix smoke with byte-exact solid-frame, animated replacement, hide/show, reconnect, shutdown, FD, and steady-RSS checks:
 
@@ -85,7 +97,7 @@ A single route can be selected with `./scripts/prime-matrix.sh <producer-api> <m
 
 ## Notes
 
-- The main window explicitly uses the Wayland Vulkan renderer.
+- The main window uses Wayland Vulkan on Linux and macOS raster on macOS.
 - The window title defaults to `Emerge Example`.
 - Dev mode enables the `Emerge` code reloader for `lib`.
 

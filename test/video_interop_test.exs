@@ -92,7 +92,7 @@ defmodule EmergeDemo.VideoInteropTest do
       source_opts =
         branches
         |> Enum.take(2)
-        |> Enum.flat_map(& &1.children)
+        |> Enum.flat_map(fn {branch, _opts} -> branch.children end)
         |> Enum.find_value(fn
           {unquote(source_name), opts, _metadata} -> opts
           _other -> nil
@@ -135,18 +135,14 @@ defmodule EmergeDemo.VideoInteropTest do
   end
 
   test "main viewport exposes separate codec, decoded DMA-BUF, GPU, and binary targets" do
-    config = Application.get_env(:emerge_demo, EmergeDemo.Application, [])
-    Application.put_env(:emerge_demo, EmergeDemo.Application, prime_validation?: true)
-    on_exit(fn -> Application.put_env(:emerge_demo, EmergeDemo.Application, config) end)
-
     assert {:ok, state, _opts} = EmergeDemo.mount([])
 
     assert state.video_targets == %{
-             dma_buf: {:streaming, :headless_prime_validation},
-             binary: {:streaming, :headless_binary_validation},
-             h264: {:streaming, :h264_file_playback},
-             h264_dmabuf: {:streaming, :h264_dmabuf_playback},
-             h265_dmabuf: {:streaming, :h265_dmabuf_playback}
+             dma_buf: {:starting, :headless_prime_validation},
+             binary: {:starting, :headless_binary_validation},
+             h264: {:starting, :h264_file_playback},
+             h264_dmabuf: {:starting, :h264_dmabuf_playback},
+             h265_dmabuf: {:starting, :h265_dmabuf_playback}
            }
   end
 
@@ -155,9 +151,9 @@ defmodule EmergeDemo.VideoInteropTest do
               spec: [
                 _dma_buf_branch,
                 _binary_branch,
-                {h264_branch, group: :h264_playback},
-                {h264_dmabuf_branch, group: :h264_dmabuf_playback},
-                {h265_dmabuf_branch, group: :h265_dmabuf_playback}
+                {h264_branch, group: :h264_playback, crash_group_mode: :temporary},
+                {h264_dmabuf_branch, group: :h264_dmabuf_playback, crash_group_mode: :temporary},
+                {h265_dmabuf_branch, group: :h265_dmabuf_playback, crash_group_mode: :temporary}
               ]
             ], state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
 
@@ -410,7 +406,7 @@ defmodule EmergeDemo.VideoInteropTest do
 
     assert MapSet.member?(restarting.restarting_playbacks, :h264)
 
-    assert {[spec: {_branch, group: :h264_playback}], restarted} =
+    assert {[spec: {_branch, group: :h264_playback, crash_group_mode: :temporary}], restarted} =
              EmergeDemo.VideoPipeline.handle_child_terminated(
                :h264_sink,
                %{children: %{}},
@@ -429,7 +425,8 @@ defmodule EmergeDemo.VideoInteropTest do
 
     assert MapSet.member?(dmabuf_restarting.restarting_playbacks, :h264_dmabuf)
 
-    assert {[spec: {_branch, group: :h264_dmabuf_playback}], dmabuf_restarted} =
+    assert {[spec: {_branch, group: :h264_dmabuf_playback, crash_group_mode: :temporary}],
+            dmabuf_restarted} =
              EmergeDemo.VideoPipeline.handle_child_terminated(
                :h264_dmabuf_sink,
                %{children: %{}},
@@ -448,7 +445,8 @@ defmodule EmergeDemo.VideoInteropTest do
 
     assert MapSet.member?(h265_restarting.restarting_playbacks, :h265_dmabuf)
 
-    assert {[spec: {_branch, group: :h265_dmabuf_playback}], h265_restarted} =
+    assert {[spec: {_branch, group: :h265_dmabuf_playback, crash_group_mode: :temporary}],
+            h265_restarted} =
              EmergeDemo.VideoPipeline.handle_child_terminated(
                :h265_dmabuf_sink,
                %{children: %{}},
@@ -546,5 +544,21 @@ defmodule EmergeDemo.VideoInteropTest do
 
     assert {:error, :viewport_unavailable} =
              EmergeDemo.VideoPipeline.submit(frame, :headless_binary_validation)
+  end
+
+  test "a failed hardware branch reports its own status without stopping the pipeline" do
+    Process.register(self(), EmergeDemo)
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+
+    assert {[], ^state} =
+             EmergeDemo.VideoPipeline.handle_crash_group_down(
+               :h264_dmabuf_playback,
+               %{crash_reason: :unsupported},
+               state
+             )
+
+    assert_receive {:video_status, :h264_dmabuf_playback, {:error, :unsupported}}
+    refute_receive {:video_status, :headless_binary_validation, _}
+    refute state.viewport_closed?
   end
 end

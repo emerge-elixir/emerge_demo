@@ -703,7 +703,7 @@ defmodule EmergeDemo.Showcase.View.Borders do
   defp combined_code do
     ~S"""
     el([
-      Background.gradient(color_rgb(67, 97, 150), color_rgb(111, 77, 189), 135),
+      Background.color(gradient([color_rgb(67, 97, 150), color_rgb(111, 77, 189)], 135)),
       Border.rounded(18),
       Border.width(2),
       Border.color(:pink),

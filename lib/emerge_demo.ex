@@ -21,7 +21,7 @@ defmodule EmergeDemo do
         [
           emerge_skia: [
             otp_app: :emerge_demo,
-            backend: :wayland,
+            backend: if(:os.type() == {:unix, :darwin}, do: :macos, else: :wayland),
             title: "Emerge Example",
             rendering_api: EmergeDemo.Application.main_rendering_api(),
             # backend: :drm,
@@ -35,24 +35,13 @@ defmodule EmergeDemo do
         opts
       )
 
-    video_targets =
-      if EmergeDemo.Application.prime_validation?() do
-        %{
-          dma_buf: {:streaming, @dma_buf_target},
-          binary: {:streaming, @binary_target},
-          h264: {:streaming, @h264_target},
-          h264_dmabuf: {:streaming, @h264_dmabuf_target},
-          h265_dmabuf: {:streaming, @h265_dmabuf_target}
-        }
-      else
-        %{
-          dma_buf: {{:error, :video_interop_disabled}, nil},
-          binary: {{:error, :video_interop_disabled}, nil},
-          h264: {{:error, :video_interop_disabled}, nil},
-          h264_dmabuf: {{:error, :video_interop_disabled}, nil},
-          h265_dmabuf: {{:error, :video_interop_disabled}, nil}
-        }
-      end
+    video_targets = %{
+      dma_buf: {:starting, @dma_buf_target},
+      binary: {:starting, @binary_target},
+      h264: {:starting, @h264_target},
+      h264_dmabuf: {:starting, @h264_dmabuf_target},
+      h265_dmabuf: {:starting, @h265_dmabuf_target}
+    }
 
     {:ok, %{video_targets: video_targets}, viewport_opts}
   end
@@ -69,6 +58,19 @@ defmodule EmergeDemo do
     else
       {:ok, state} = handle_solve_updated(updated, state)
       {:noreply, state}
+    end
+  end
+
+  def handle_info({:video_status, target, status}, state) do
+    targets =
+      Map.new(state.video_targets, fn {stream, {old, id}} ->
+        {stream, {if(id == target, do: status, else: old), id}}
+      end)
+
+    if targets == state.video_targets do
+      {:noreply, state}
+    else
+      {:noreply, Viewport.rerender(%{state | video_targets: targets})}
     end
   end
 

@@ -105,7 +105,7 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
           ]),
           status_badge(status)
         ]),
-        video_panel(target),
+        video_panel(target, status),
         paragraph([width(fill()), Font.size(12), Font.color(color_rgb(100, 107, 121))], [
           text(detail)
         ])
@@ -113,7 +113,16 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
     )
   end
 
-  defp video_panel(target) when is_atom(target) do
+  defp video_panel(_target, {:error, reason}) do
+    el(
+      [width(fill()), height(px(280)), padding(20), Font.color(color_rgb(153, 27, 27))],
+      paragraph([width(fill())], [
+        text("Stream failed: #{failure_reason(reason)}")
+      ])
+    )
+  end
+
+  defp video_panel(target, _status) when is_atom(target) and not is_nil(target) do
     el(
       [
         width(fill()),
@@ -135,7 +144,7 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
     )
   end
 
-  defp video_panel(_target) do
+  defp video_panel(_target, _status) do
     el(
       [
         width(fill()),
@@ -151,6 +160,11 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
       text("Waiting for the headless renderer…")
     )
   end
+
+  defp failure_reason(:dma_buf_requires_linux), do: "DMA-BUF requires Linux."
+  defp failure_reason(:renderer_start_failed), do: "The requested renderer could not start."
+  defp failure_reason({%{__exception__: true} = error, _stack}), do: Exception.message(error)
+  defp failure_reason(reason), do: inspect(reason, limit: 3, printable_limit: 120)
 
   defp status_badge(:streaming),
     do: badge("STREAMING", color_rgb(220, 252, 231), color_rgb(22, 101, 52))

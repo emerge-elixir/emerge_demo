@@ -50,7 +50,7 @@ defmodule EmergeDemo.PrimeSource do
         width(fill()),
         height(fill()),
         padding(28),
-        Background.gradient(color_rgb(24, 36, 76), color_rgb(83, 50, 130), 24)
+        Background.color(gradient([color_rgb(24, 36, 76), color_rgb(83, 50, 130)], 24))
       ],
       column([width(fill()), height(fill()), spacing(20)], [
         row([width(fill())], [

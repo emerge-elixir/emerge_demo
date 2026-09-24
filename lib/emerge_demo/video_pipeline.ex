@@ -49,16 +49,16 @@ defmodule EmergeDemo.VideoPipeline do
   @impl true
   def handle_init(_ctx, opts) do
     spec = [
-      child(:dma_buf_source, %Source{notify: self(), message_tag: :emerge_skia_frame})
-      |> child(:dma_buf_sink, %Sink{
-        submit: {__MODULE__, :submit, []},
-        target: @dma_buf_target
-      }),
-      child(:binary_source, %Source{notify: self(), message_tag: :emerge_skia_frame})
-      |> child(:binary_sink, %Sink{
-        submit: {__MODULE__, :submit, []},
-        target: @binary_target
-      }),
+      {child(:dma_buf_source, %Source{notify: self(), message_tag: :emerge_skia_frame})
+       |> child(:dma_buf_sink, %Sink{
+         submit: {__MODULE__, :submit, []},
+         target: @dma_buf_target
+       }), group: :dma_buf, crash_group_mode: :temporary},
+      {child(:binary_source, %Source{notify: self(), message_tag: :emerge_skia_frame})
+       |> child(:binary_sink, %Sink{
+         submit: {__MODULE__, :submit, []},
+         target: @binary_target
+       }), group: :binary, crash_group_mode: :temporary},
       h264_branch(),
       h264_dmabuf_branch(),
       h265_dmabuf_branch()
@@ -108,6 +108,27 @@ defmodule EmergeDemo.VideoPipeline do
     start_video_source(stream, state)
   end
 
+  def handle_info({:check_video_source, stream, attempts}, _ctx, state) do
+    source = Process.whereis(source_module(stream))
+
+    cond do
+      state.viewport_closed? ->
+        {[], state}
+
+      source && source_ready?(source) ->
+        {[], state}
+
+      attempts > 0 ->
+        Process.send_after(self(), {:check_video_source, stream, attempts - 1}, 100)
+        {[], state}
+
+      true ->
+        stop_video_source(stream)
+        status(source_target(stream), {:error, :renderer_start_failed})
+        {[], state}
+    end
+  end
+
   def handle_info(_message, _ctx, state), do: {[], state}
 
   @impl true
@@ -148,28 +169,43 @@ defmodule EmergeDemo.VideoPipeline do
   def handle_child_terminated(_child, _ctx, state), do: {[], state}
 
   @impl true
+  def handle_crash_group_down(group, ctx, state) do
+    target =
+      case group do
+        @h264_group ->
+          @h264_target
+
+        @h264_dmabuf_group ->
+          @h264_dmabuf_target
+
+        @h265_dmabuf_group ->
+          @h265_dmabuf_target
+
+        :dma_buf ->
+          stop_video_source(:dma_buf)
+          @dma_buf_target
+
+        :binary ->
+          stop_video_source(:binary)
+          @binary_target
+      end
+
+    status(target, {:error, ctx.crash_reason})
+    {[], state}
+  end
+
+  @impl true
   def handle_child_notification(
         {:video_interop_sink_error, :viewport_not_ready},
         _child,
         _ctx,
         state
       ) do
-    Enum.each(@headless_streams, &stop_video_source/1)
-
-    actions =
-      if state.viewport_closed? do
-        []
-      else
-        [remove_children: @playback_groups]
-      end
-
-    {actions,
-     %{
-       state
-       | sources: %{dma_buf: nil, binary: nil},
-         viewport_closed?: true,
-         restarting_playbacks: MapSet.new()
-     }}
+    if Process.whereis(EmergeDemo) do
+      {[], state}
+    else
+      close_viewport(state)
+    end
   end
 
   def handle_child_notification(
@@ -194,6 +230,7 @@ defmodule EmergeDemo.VideoPipeline do
         _ctx,
         state
       ) do
+    status(@h264_target, {:error, reason})
     report_error(:h264_frame_conversion_error, reason, state)
   end
 
@@ -229,7 +266,7 @@ defmodule EmergeDemo.VideoPipeline do
         target: @h264_target
       })
 
-    {branch, group: @h264_group}
+    {branch, group: @h264_group, crash_group_mode: :temporary}
   end
 
   defp h264_dmabuf_branch do
@@ -255,7 +292,7 @@ defmodule EmergeDemo.VideoPipeline do
         target: @h264_dmabuf_target
       })
 
-    {branch, group: @h264_dmabuf_group}
+    {branch, group: @h264_dmabuf_group, crash_group_mode: :temporary}
   end
 
   defp h265_dmabuf_branch do
@@ -281,7 +318,7 @@ defmodule EmergeDemo.VideoPipeline do
         target: @h265_dmabuf_target
       })
 
-    {branch, group: @h265_dmabuf_group}
+    {branch, group: @h265_dmabuf_group, crash_group_mode: :temporary}
   end
 
   defp playback_for_sink(:h264_sink), do: :h264
@@ -350,6 +387,10 @@ defmodule EmergeDemo.VideoPipeline do
 
   defp start_ready_video_source(stream, target, state) do
     cond do
+      stream == :dma_buf and :os.type() != {:unix, :linux} ->
+        status(@dma_buf_target, {:error, :dma_buf_requires_linux})
+        {[], state}
+
       Process.whereis(source_module(stream)) ->
         {[], state}
 
@@ -364,9 +405,16 @@ defmodule EmergeDemo.VideoPipeline do
                EmergeDemo.VideoSupervisor,
                {module, [name: module, video_output_target: target]}
              ) do
-          {:ok, _pid} -> {[], state}
-          {:error, {:already_started, _pid}} -> {[], state}
-          {:error, reason} -> report_error(source_start_error(stream), reason, state)
+          {:ok, _pid} ->
+            Process.send_after(self(), {:check_video_source, stream, 20}, 100)
+            {[], state}
+
+          {:error, {:already_started, _pid}} ->
+            {[], state}
+
+          {:error, reason} ->
+            status(source_target(stream), {:error, reason})
+            report_error(source_start_error(stream), reason, state)
         end
     end
   end
@@ -374,11 +422,43 @@ defmodule EmergeDemo.VideoPipeline do
   defp source_child(:dma_buf), do: :dma_buf_source
   defp source_child(:binary), do: :binary_source
 
+  defp source_ready?(source) do
+    Emerge.renderer(source) != nil
+  catch
+    :exit, _reason -> false
+  end
+
+  defp source_target(:dma_buf), do: @dma_buf_target
+  defp source_target(:binary), do: @binary_target
+
+  defp status(target, status) do
+    if viewport = Process.whereis(EmergeDemo), do: send(viewport, {:video_status, target, status})
+  end
+
   defp source_module(:dma_buf), do: EmergeDemo.PrimeSource
   defp source_module(:binary), do: EmergeDemo.BinarySource
 
   defp source_start_error(:dma_buf), do: :dma_buf_source_start_failed
   defp source_start_error(:binary), do: :binary_source_start_failed
+
+  defp close_viewport(state) do
+    Enum.each(@headless_streams, &stop_video_source/1)
+
+    actions =
+      if state.viewport_closed? do
+        []
+      else
+        [remove_children: @playback_groups]
+      end
+
+    {actions,
+     %{
+       state
+       | sources: %{dma_buf: nil, binary: nil},
+         viewport_closed?: true,
+         restarting_playbacks: MapSet.new()
+     }}
+  end
 
   defp report_error(kind, reason, state) do
     Logger.error("#{kind}: #{inspect(reason)}")
@@ -393,7 +473,21 @@ defmodule EmergeDemo.VideoPipeline do
         {:error, :viewport_unavailable}
 
       viewport ->
-        Emerge.submit_video_frame(viewport, target, frame)
+        result = Emerge.submit_video_frame(viewport, target, frame)
+
+        next =
+          case result do
+            :ok -> :streaming
+            {:error, :viewport_not_ready} -> :waiting
+            {:error, reason} -> {:error, reason}
+          end
+
+        if Process.get({__MODULE__, target}) != next do
+          status(target, next)
+          Process.put({__MODULE__, target}, next)
+        end
+
+        result
     end
   end
 end

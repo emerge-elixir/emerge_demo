@@ -23,7 +23,7 @@ defmodule EmergeDemo.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:video_interop, "~> 0.1.0"},
+      {:video_interop, path: "../video_interop", override: true},
       {:membrane_video_interop, "~> 0.1.0"},
       {:membrane_core, "~> 1.3"},
       {:membrane_file_plugin, "~> 0.17.5"},
@@ -32,7 +32,7 @@ defmodule EmergeDemo.MixProject do
       {:membrane_h26x_plugin, "~> 0.11.2"},
       {:membrane_realtimer_plugin, "~> 0.11.1"},
       {:membrane_video_transcode, path: "../membrane_video_transcode"},
-      {:emerge, path: "../emerge-headless"},
+      {:emerge, path: "../emerge"},
       {:solve, "~> 0.2.0"},
       {:file_system, "~> 1.0", only: :dev},
       {:rustler, "~> 0.38", optional: true}

@@ -14,8 +14,6 @@ defmodule EmergeDemo.Application do
   def children(:dev), do: base_children() ++ [hot_reload_child()]
   def children(_other), do: base_children()
 
-  def prime_validation?, do: config(:prime_validation?, true)
-
   def main_rendering_api, do: config(:main_rendering_api, :vulkan)
 
   def prime_source_rendering_api, do: config(:prime_source_rendering_api, :opengl)
@@ -40,14 +38,10 @@ defmodule EmergeDemo.Application do
   end
 
   defp video_children do
-    if prime_validation?() do
-      [
-        {DynamicSupervisor, strategy: :one_for_one, name: EmergeDemo.VideoSupervisor},
-        EmergeDemo.VideoPipeline
-      ]
-    else
-      []
-    end
+    [
+      {DynamicSupervisor, strategy: :one_for_one, name: EmergeDemo.VideoSupervisor},
+      EmergeDemo.VideoPipeline
+    ]
   end
 
   defp hot_reload_child do

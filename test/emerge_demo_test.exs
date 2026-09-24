@@ -16,23 +16,38 @@ defmodule EmergeDemoTest do
     assert_receive {:"$gen_cast", {:emerge_viewport, :flush}}
   end
 
-  test "mount configures the Wayland Vulkan renderer" do
+  test "stream failure changes only its card and duplicate status does not rerender" do
+    {:ok, initial, _opts} = EmergeDemo.mount([])
+    state = Map.put(initial, :__emerge__, %Emerge.Runtime.Viewport.State{module: EmergeDemo})
+    message = {:video_status, :h264_dmabuf_playback, {:error, :unsupported}}
+    assert {:noreply, next} = EmergeDemo.handle_info(message, state)
+    assert next.video_targets.binary == state.video_targets.binary
+    assert next.video_targets.h264_dmabuf == {{:error, :unsupported}, :h264_dmabuf_playback}
+    assert_receive {:"$gen_cast", {:emerge_viewport, :flush}}
+    assert {:noreply, ^next} = EmergeDemo.handle_info(message, next)
+    refute_receive {:"$gen_cast", {:emerge_viewport, :flush}}
+  end
+
+  test "mount configures the platform renderer" do
+    {backend, rendering_api} =
+      if :os.type() == {:unix, :darwin}, do: {:macos, :raster}, else: {:wayland, :vulkan}
+
     assert {:ok,
             %{
               video_targets: %{
-                dma_buf: {{:error, :video_interop_disabled}, nil},
-                binary: {{:error, :video_interop_disabled}, nil},
-                h264: {{:error, :video_interop_disabled}, nil},
-                h264_dmabuf: {{:error, :video_interop_disabled}, nil},
-                h265_dmabuf: {{:error, :video_interop_disabled}, nil}
+                dma_buf: {:starting, :headless_prime_validation},
+                binary: {:starting, :headless_binary_validation},
+                h264: {:starting, :h264_file_playback},
+                h264_dmabuf: {:starting, :h264_dmabuf_playback},
+                h265_dmabuf: {:starting, :h265_dmabuf_playback}
               }
             }, opts} = EmergeDemo.mount([])
 
     assert opts[:emerge_skia] == [
              otp_app: :emerge_demo,
-             backend: :wayland,
+             backend: backend,
              title: "Emerge Example",
-             rendering_api: :vulkan,
+             rendering_api: rendering_api,
              assets: AssetCatalog.renderer_assets_config(),
              renderer_cache: [enabled: true],
              renderer_stats_log: true,
@@ -64,7 +79,7 @@ defmodule EmergeDemoTest do
     assert Enum.all?(opts[:dirs], &is_binary/1)
   end
 
-  test "dev children omit video producers while Video Interop is disabled" do
+  test "dev children always include the video pipeline and source supervisor" do
     children = EmergeDemo.Application.children(:dev)
 
     assert children
@@ -78,6 +93,9 @@ defmodule EmergeDemoTest do
 
     refute Enum.any?(children, &(child_module(&1) == EmergeDemo.PrimeSource))
     refute Enum.any?(children, &(child_module(&1) == EmergeDemo.BinarySource))
+    assert EmergeDemo.VideoPipeline in children
+
+    assert {DynamicSupervisor, strategy: :one_for_one, name: EmergeDemo.VideoSupervisor} in children
   end
 
   defp child_module(%{start: {module, :start_link, _args}}), do: module
