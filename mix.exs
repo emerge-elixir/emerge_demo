@@ -32,7 +32,7 @@ defmodule EmergeDemo.MixProject do
       {:membrane_h26x_plugin, "~> 0.11.2"},
       {:membrane_realtimer_plugin, "~> 0.11.1"},
       {:membrane_video_transcode, path: "../membrane_video_transcode"},
-      {:emerge, path: "../emerge-vulkan-graphite-camera"},
+      {:emerge, path: "../emerge-headless"},
       {:solve, "~> 0.2.0"},
       {:file_system, "~> 1.0", only: :dev},
       {:rustler, "~> 0.38", optional: true}

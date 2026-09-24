@@ -78,19 +78,27 @@ defmodule EmergeDemo.Todo.View do
     create = solve(Todo.App, :create)
 
     el(
-      [width(fill()), height(fill())] ++ create_placeholder_attrs(create),
-      Input.text(
+      [width(fill()), height(fill())] ++
+        create_placeholder_attrs(create) ++
         [
-          width(fill()),
-          height(fill()),
-          padding(16),
-          Font.size(24),
-          Font.color(text_main()),
-          Event.on_change(event(create, :set)),
-          Event.on_key_down(:enter, event(create, :create))
-        ] ++ transparent_surface_attrs() ++ focus_ring_attrs(focus_ring_color()),
-        create.title
-      )
+          Nearby.in_front(
+            Input.text(
+              [
+                key(:input),
+                width(fill()),
+                height(fill()),
+                padding(16),
+                Font.size(24),
+                Font.color(text_main()),
+                Event.on_change(event(create, :set)),
+                Event.on_key_down(:enter, event(create, :create)),
+                Border.rounded(2)
+              ] ++ focus_ring_attrs(),
+              create.title
+            )
+          )
+        ],
+      none()
     )
   end
 
@@ -288,6 +296,7 @@ defmodule EmergeDemo.Todo.View do
   defp placeholder_overlay(content) do
     el(
       [
+        key(:placeholder),
         padding(16),
         center_y(),
         Font.size(24),
@@ -374,11 +383,12 @@ defmodule EmergeDemo.Todo.View do
     [Border.width(1), Border.color(transparent_color())]
   end
 
-  defp focus_ring_attrs(glow_color \\ focus_glow()) do
+  defp focus_ring_attrs() do
     [
       Interactive.focused([
+        Background.color(color(:white)),
         Border.color(focus_ring_color()),
-        Border.glow(glow_color, 2)
+        Border.glow(focus_ring_color(), 2)
       ])
     ]
   end

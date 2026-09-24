@@ -471,7 +471,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
         width(fill()),
         padding(16),
         spacing(14),
-        Background.gradient(color_rgb(16, 52, 102), color_rgb(44, 132, 182), 90),
+        Background.color(gradient([color_rgb(16, 52, 102), color_rgb(44, 132, 182)], 90)),
         Border.rounded(18),
         Border.width(1),
         Border.color(color_rgba(204, 233, 255, 120 / 255)),

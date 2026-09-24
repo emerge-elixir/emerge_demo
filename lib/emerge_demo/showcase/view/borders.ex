@@ -423,7 +423,7 @@ defmodule EmergeDemo.Showcase.View.Borders do
         "Outer energy + inner depth",
         "Energy",
         [
-          Background.gradient(color_rgb(67, 97, 150), color_rgb(111, 77, 189), 135),
+          Background.color(gradient([color_rgb(67, 97, 150), color_rgb(111, 77, 189)], 135)),
           Border.rounded(10),
           Border.width(2),
           Border.color(color_rgb(255, 110, 192)),
@@ -580,7 +580,7 @@ defmodule EmergeDemo.Showcase.View.Borders do
         [
           width(fill()),
           padding(18),
-          Background.gradient(color_rgb(67, 97, 150), color_rgb(111, 77, 189), 135),
+          Background.color(gradient([color_rgb(67, 97, 150), color_rgb(111, 77, 189)], 135)),
           Border.rounded(18),
           Border.width(2),
           Border.color(color_rgb(255, 110, 192)),
