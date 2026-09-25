@@ -8,7 +8,7 @@ A demo application built with `Emerge` and `Solve`. It includes a Todo app and a
 - Linux with a working Wayland session and hardware Vulkan driver, or macOS 15+
 - A Rust toolchain plus the native graphics build dependencies for `emerge`
 - FFmpeg 9 development libraries for `membrane_video_transcode` (`brew install ffmpeg` on macOS)
-- Sibling checkouts at `../emerge` and `../membrane_video_transcode`
+- Sibling checkouts at `../emerge-headless`, `../membrane_video_transcode`, and `../makeup_emerge`
 
 ## Run Locally
 
@@ -50,7 +50,8 @@ The desktop window uses the separate macOS host, which accepts owned RGBA8888 vi
 
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
-- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, and VideoInterop.
+- `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, animation, and VideoInterop.
+- The `Animation` tab pairs live demos with always-visible Elixir recipes highlighted by Makeup Emerge: expanding labels, an SVG highlight sweep, sidebar, accordion, notification enter/exit, and an orbiting glow. Toggle controls mid-animation to reverse retained transitions; narrow windows can scroll each code/demo pair horizontally.
 - The `Video Interop` tab compares five Membrane paths: standard looping H.264 playback decoded to owned RGBA8888, separate VAAPI-decoded H.264 and H.265 NV12 DMA-BUF streams, a GPU renderer DMA-BUF stream, and a CPU raster owned-binary stream.
 - The bundled H.264 and H.265 clips are derived from *Big Buck Bunny* under CC BY 3.0; attribution and conversion details are in [`priv/video/README.md`](priv/video/README.md).
 

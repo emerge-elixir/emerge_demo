@@ -17,6 +17,7 @@ defmodule EmergeDemo.Showcase.View do
   }
 
   alias EmergeDemo.Showcase.View.Nearby, as: NearbyPage
+  alias EmergeDemo.Showcase.View.Animation, as: AnimationPage
 
   # Domain composition and state wiring
 
@@ -63,7 +64,12 @@ defmodule EmergeDemo.Showcase.View do
             Font.size(12),
             Font.color(body_text())
           ],
-          text("Hover code blocks are simplified")
+          text(
+            if(pages.current == :animation,
+              do: "Live demos + highlighted Elixir",
+              else: "Hover code blocks are simplified"
+            )
+          )
         )
       ]),
       page_nav(pages),
@@ -112,6 +118,7 @@ defmodule EmergeDemo.Showcase.View do
           :scroll -> Scroll.layout()
           :keys -> Keys.layout()
           :interaction -> Interaction.layout()
+          :animation -> AnimationPage.layout()
           :video_interop -> VideoInterop.layout(video_targets)
           _other -> none()
         end
@@ -156,6 +163,10 @@ defmodule EmergeDemo.Showcase.View do
 
   defp current_page_summary(:interaction) do
     "Compare decorative pointer states with swipe gestures, transformed hit testing, text input, sliders, buttons, focused key listeners, and virtual keys. Hover and interact with the demos to inspect the code."
+  end
+
+  defp current_page_summary(:animation) do
+    "Explore retained changes, content sizing, enter/exit transitions, and native loops. Each live demo has its Elixir recipe alongside it, highlighted with Makeup Emerge. Toggle mid-animation to see interruption handling."
   end
 
   defp current_page_summary(:video_interop) do

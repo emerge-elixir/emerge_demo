@@ -17,8 +17,13 @@ defmodule EmergeDemo.Showcase.PagesTest do
              %{id: :scroll, label: "Scroll"},
              %{id: :keys, label: "Keys"},
              %{id: :interaction, label: "Interaction"},
+             %{id: :animation, label: "Animation"},
              %{id: :video_interop, label: "Video Interop"}
            ]
+  end
+
+  test "set_page switches to Animation" do
+    assert %{current: :animation} = Pages.set_page(:animation, %{current: :layout})
   end
 
   test "set_page switches to Video Interop" do

@@ -21,6 +21,7 @@ defmodule EmergeDemo.Showcase.App do
     [
       controller!(name: :pages, module: Showcase.Pages),
       controller!(name: :interaction, module: Showcase.Interaction),
+      controller!(name: :animation, module: Showcase.Animation),
       controller!(name: :keys, module: Showcase.Keys),
       controller!(
         name: :text_input,

@@ -8,7 +8,10 @@ defmodule EmergeDemo.PrimeMatrixPipeline do
   @impl true
   def handle_init(_ctx, {main, owner}) do
     spec =
-      child(:source, %Membrane.VideoInterop.Source{notify: self()})
+      child(:source, %Membrane.VideoInterop.Source{
+        notify: self(),
+        message_tag: :emerge_skia_frame
+      })
       |> child(:sink, %Membrane.VideoInterop.Sink{
         submit: {EmergeDemo.PrimeMatrixRoute, :submit, [main]},
         target: :prime_matrix
@@ -113,9 +116,7 @@ defmodule EmergeDemo.PrimeMatrixRoute do
 
     write_screenshots!(main, producer_api, main_api, "hide-show", <<255, 0, 0, 255>>)
 
-    :ok = EmergeSkia.stop(source)
-    :ok = Membrane.Pipeline.terminate(pipeline)
-    :ok = EmergeSkia.stop(main)
+    stop_route!(source, pipeline, main)
     source = nil
     main = nil
     pipeline = nil
@@ -181,13 +182,19 @@ defmodule EmergeDemo.PrimeMatrixRoute do
     end)
 
     assert_submitted_pixels!(main, expected_pixel, "renderer restart", width, height)
-    :ok = EmergeSkia.stop(source)
-    :ok = Membrane.Pipeline.terminate(pipeline)
-    :ok = EmergeSkia.stop(main)
+    stop_route!(source, pipeline, main)
     source = nil
     main = nil
     pipeline = nil
     _ = {source, main, pipeline}
+  end
+
+  defp stop_route!(source, pipeline, main) do
+    # Vulkan can retain the displayed imported frame. Quiesce the consumer and
+    # release queued frames before waiting for the producer's borrowed pool.
+    :ok = EmergeSkia.stop(main)
+    :ok = Membrane.Pipeline.terminate(pipeline)
+    :ok = EmergeSkia.stop(source)
   end
 
   defp parse_api!("opengl"), do: :opengl
