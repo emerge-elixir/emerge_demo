@@ -1866,6 +1866,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
         key(:showcase_volume_slider),
         width(fill()),
         height(px(38)),
+        Background.color(panel_bg()),
         Slider.config(
           min: 0,
           max: 100,
@@ -1889,6 +1890,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
         key(:showcase_accent_slider),
         width(fill()),
         height(px(44)),
+        Background.color(panel_bg()),
         Slider.config(
           min: 0,
           max: 100,
@@ -1915,12 +1917,14 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   end
 
   defp rotated_slider(slider_input) do
+    background = color_rgb(40, 46, 66)
+
     el(
       [
         width(px(96)),
         height(px(228)),
         padding(14),
-        Background.color(color_rgb(40, 46, 66)),
+        Background.color(background),
         Border.rounded(12),
         Border.width(1),
         Border.color(color_rgb(96, 116, 128))
@@ -1930,6 +1934,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
           key(:showcase_rotated_slider),
           width(px(180)),
           height(px(38)),
+          Background.color(background),
           center_x(),
           center_y(),
           rotate(-90),

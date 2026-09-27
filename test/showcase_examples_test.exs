@@ -248,6 +248,28 @@ defmodule EmergeDemo.Showcase.ExamplesTest do
     end
   end
 
+  test "slider backgrounds mask the interior of their focus glow" do
+    sliders =
+      View.Interaction.layout()
+      |> nodes()
+      |> Enum.filter(&(&1.type == :slider))
+      |> Map.new(&{&1.key, &1})
+
+    backgrounds = %{
+      showcase_volume_slider: {:color_rgb, {46, 50, 72}},
+      showcase_accent_slider: {:color_rgb, {46, 50, 72}},
+      showcase_rotated_slider: {:color_rgb, {40, 46, 66}}
+    }
+
+    assert Map.keys(sliders) == Map.keys(backgrounds)
+
+    for {key, background} <- backgrounds do
+      slider = Map.fetch!(sliders, key)
+      assert slider.attrs[:background] == background
+      assert Map.has_key?(slider.attrs, :focused)
+    end
+  end
+
   test "real hover and input events still reach their controllers without changing the code" do
     select_page(:interaction)
     tree = View.layout()
