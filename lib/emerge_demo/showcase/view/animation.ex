@@ -4,7 +4,7 @@ defmodule EmergeDemo.Showcase.View.Animation do
 
   alias EmergeDemo.Showcase
   alias EmergeDemo.Showcase.AssetCatalog
-  alias EmergeDemo.Showcase.View.AnimationCode
+  alias EmergeDemo.Showcase.View.{AnimationCode, Example}
 
   def layout do
     animation = solve(Showcase.App, :animation)
@@ -274,38 +274,24 @@ defmodule EmergeDemo.Showcase.View.Animation do
   end
 
   defp example(id, title, description, demo, controls) do
-    column([key({:animation, id}), width(fill()), spacing(12)], [
-      el([Font.size(23), Font.bold(), Font.color(color_rgb(28, 38, 60))], text(title)),
-      paragraph([width(fill()), Font.size(14), Font.color(color_rgb(92, 100, 114))], [
-        text(description)
-      ]),
-      # Keep the code and demo together even in a narrow window. The outer page
-      # scrolls vertically, and this pair scrolls horizontally if necessary.
+    Example.layout(
+      title,
+      description,
+      {:animation, id},
+      AnimationCode.snippet(id),
       el(
-        [width(fill()), scrollbar_x()],
-        row([width(max(px(860), fill())), spacing(18)], [
-          AnimationCode.layout(id),
-          column([width(fill()), spacing(12)], [
-            el(
-              [Font.size(12), Font.bold(), Font.color(color_rgb(72, 96, 168))],
-              text("LIVE DEMO")
-            ),
-            el(
-              [
-                width(fill()),
-                height(px(220)),
-                Background.color(color_rgb(24, 31, 47)),
-                Border.rounded(12),
-                Font.size(16),
-                Font.color(color_rgb(239, 244, 255))
-              ],
-              demo
-            ),
-            controls
-          ])
-        ])
-      )
-    ])
+        [
+          width(fill()),
+          height(px(220)),
+          Background.color(color_rgb(24, 31, 47)),
+          Border.rounded(12),
+          Font.size(16),
+          Font.color(color_rgb(239, 244, 255))
+        ],
+        demo
+      ),
+      controls: controls
+    )
   end
 
   defp toggle(animation, field, label) do

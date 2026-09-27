@@ -2,7 +2,8 @@ defmodule EmergeDemo.Showcase.View.Assets do
   use Emerge.UI
 
   alias EmergeDemo.Showcase.AssetCatalog
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
 
   @fit_frames [
     {"Wide frame", {280, 120}},
@@ -15,13 +16,13 @@ defmodule EmergeDemo.Showcase.View.Assets do
   def layout do
     column([width(fill()), spacing(28)], [
       assets_section(),
+      source_section(),
       svg_weather_section(),
       svg_scaling_section(),
       svg_tint_section(),
-      source_section(),
-      fonts_section(),
       image_section(),
       background_section(),
+      fonts_section(),
       demo_policy_section()
     ])
   end
@@ -30,11 +31,11 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp assets_section do
     column([width(fill()), spacing(16)], [
-      section_title("Assets"),
-      section_copy(
-        "Assets resolve from the example app priv directory or from allowlisted runtime paths. This page keeps the old demo breadth: image/2, Background helpers, SVGs, fonts, source behavior, fit modes, and the renderer policy that makes them work."
+      Example.heading("Give an image a source"),
+      Example.prose(
+        "Start with a file in the app's priv directory. image creates a child in the layout; Background.image paints an existing element. Both use the same asset resolver."
       ),
-      assets_example(
+      Example.layout(
         "image/2 + Background.image/2",
         "Start with the two most common entry points: a normal image element and an element whose frame is painted from an asset background.",
         {:assets, :overview},
@@ -46,11 +47,11 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp svg_weather_section do
     column([width(fill()), spacing(16)], [
-      section_title("SVG Weather"),
-      section_copy(
-        "A hardcoded seven-day forecast using local SVG icons. Temperatures lead with Celsius and keep Fahrenheit as the quieter secondary scale."
+      Example.heading("Reuse a few icons"),
+      Example.prose(
+        "Once an SVG has a logical source, we can reuse it in a larger view. This forecast maps seven days of data to the same three icon files."
       ),
-      assets_example(
+      Example.layout(
         "Local SVGs in a richer UI card",
         "The same small set of SVG files can drive a more composed interface, not just standalone icons.",
         {:assets, :svg_weather},
@@ -71,11 +72,11 @@ defmodule EmergeDemo.Showcase.View.Assets do
     ]
 
     column([width(fill()), spacing(16)], [
-      section_title("SVG Scaling"),
-      section_copy(
+      Example.heading("One SVG, several sizes"),
+      Example.prose(
         "The same icon files stay crisp across compact forecast markers and larger showcase sizes."
       ),
-      assets_example(
+      Example.layout(
         "svg/2 across multiple sizes",
         "Render the same source at 24px, 48px, and 80px to compare scale without changing the file.",
         {:assets, :svg_scaling},
@@ -87,11 +88,11 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp svg_tint_section do
     column([width(fill()), spacing(16)], [
-      section_title("SVG Tint"),
-      section_copy(
+      Example.heading("Keep the shape, change the colour"),
+      Example.prose(
         "svg/2 preserves original colors by default. Svg.color/1 applies template tint to all visible pixels while keeping alpha and edge smoothing."
       ),
-      assets_example(
+      Example.layout(
         "Original, tinted, and flattened multicolor SVGs",
         "Keep the original strokes when no tint is set, then compare how a single tint recolors template art and flattens a multicolor source into one themed silhouette.",
         {:assets, :svg_tint},
@@ -103,49 +104,49 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp source_section do
     column([width(fill()), spacing(16)], [
-      section_title("Source"),
-      section_copy(
-        "How each source type resolves before rendering: logical assets from priv, allowlisted runtime paths, and runtime paths that the renderer blocks."
+      Example.heading("Where may that source come from?"),
+      Example.prose(
+        "A logical source resolves inside priv. An absolute runtime path needs explicit permission. Compare an allowed path with the deliberately blocked path below."
       ),
-      assets_example(
+      Example.layout(
         "Logical and runtime sources",
         "The blocked card intentionally points outside the runtime allowlist so it resolves to the failed placeholder instead of loading the file.",
         {:assets, :source},
         source_cards_code(),
-        centered_wrapped_cards(source_cards(), 936)
+        comparison_cards(source_cards(), 936)
       )
     ])
   end
 
   defp fonts_section do
     column([width(fill()), spacing(16)], [
-      section_title("Fonts"),
-      section_copy(
-        "Startup font assets are resolved from priv and mapped by family, weight, and style before the example viewport renders."
+      Example.heading("Load a font once, select it by name"),
+      Example.prose(
+        "Register a font at renderer startup. The view only needs its family name afterwards; it does not load the file again on every render."
       ),
-      assets_example(
+      Example.layout(
         "Built-in and startup-loaded font families",
         "The built-in default requires no config. The Lobster sample is loaded once at startup and then selected declaratively through Font.family/1.",
         {:assets, :fonts},
         font_cards_code(),
-        centered_wrapped_cards(font_cards(), 936)
+        comparison_cards(font_cards(), 936)
       )
     ])
   end
 
   defp image_section do
     column([width(fill()), spacing(16)], [
-      section_title("Image"),
-      section_copy(
-        "image/2 fit behavior with the same source across wide, tall, and square frames. contain keeps the full image visible, while cover fills the frame and may crop."
+      Example.heading("What if the image and frame disagree?"),
+      Example.prose(
+        "The source keeps its aspect ratio, but our frame can be wide, tall, or square. contain preserves the whole image. cover fills the frame and crops what does not fit."
       ),
-      assets_example(
+      Example.layout(
         "image/2 contain and cover",
         "Compare the same raster source across changing frame ratios without changing the file itself.",
         {:assets, :image_fit},
         image_fit_code(),
         column([width(fill()), spacing(12)], [
-          centered_wrapped_cards(image_fit_cards(), 960),
+          comparison_cards(image_fit_cards(), 960),
           fit_legend()
         ])
       )
@@ -154,24 +155,24 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp background_section do
     column([width(fill()), spacing(16)], [
-      section_title("Background"),
-      section_copy(
-        "Background.image plus its contain and repeat helpers. The helper cards keep the same frame design so the only difference is the background attribute itself."
+      Example.heading("Paint the host instead of adding a child"),
+      Example.prose(
+        "A background leaves the child slot available for text or other content. Start with one image, then repeat it along one or both axes."
       ),
-      assets_example(
+      Example.layout(
         "Background.image and helper variants",
         "The tile source is reused with cover, contain, repeat, repeat_x, and repeat_y to show the helper APIs side by side.",
         {:assets, :background_helpers},
         background_helpers_code(),
-        centered_wrapped_cards(background_cards(), 936)
+        comparison_cards(background_cards(), 936)
       ),
-      assets_example(
+      Example.layout(
         "Background.image/2 fit behavior",
         "The same raster source uses contain and cover inside wide, tall, and square frames while foreground content stays in the host element.",
         {:assets, :background_fit},
         background_fit_code(),
         column([width(fill()), spacing(8)], [
-          centered_wrapped_cards(background_fit_cards(), 960),
+          comparison_cards(background_fit_cards(), 960),
           paragraph([width(fill()), spacing(3), Font.size(10), Font.color(dim_text())], [
             text(
               "Tile source: demo_images/tile_bird_small.jpg (160x120). SVG backgrounds are also supported through the same API."
@@ -184,11 +185,11 @@ defmodule EmergeDemo.Showcase.View.Assets do
 
   defp demo_policy_section do
     column([width(fill()), spacing(16)], [
-      section_title("Demo Policy"),
-      section_copy(
-        "The page uses startup font registration plus runtime path allowlisting, and then relies on the renderer's built-in pending and failed placeholders while assets resolve asynchronously."
+      Example.heading("Put the permissions at the boundary"),
+      Example.prose(
+        "The view declares what it needs. Renderer configuration decides which fonts and runtime paths it may use. Pending and failed placeholders cover asynchronous loading."
       ),
-      assets_example(
+      Example.layout(
         "Renderer asset config",
         "This is the renderer-side setup that makes the logical, runtime, and font examples on this page work inside the example app.",
         {:assets, :policy},
@@ -367,10 +368,10 @@ defmodule EmergeDemo.Showcase.View.Assets do
     end)
   end
 
-  defp centered_wrapped_cards(cards, max_width) do
+  defp comparison_cards(cards, max_width) do
     el(
       [center_x(), width(min(px(max_width), fill()))],
-      wrapped_row([width(fill()), spacing_xy(12, 12)], cards)
+      Example.comparison_rows(cards)
     )
   end
 
@@ -519,7 +520,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
             Background.color(color_rgba(5, 20, 34, 95 / 255)),
             Border.rounded(14)
           ],
-          wrapped_row([width(fill()), spacing_xy(10, 10)], Enum.map(days, &weather_day_card/1))
+          Example.comparison_rows(Enum.map(days, &weather_day_card/1), 4)
         )
       ])
     )
@@ -626,7 +627,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
   end
 
   defp svg_weather_scale_showcase(specs) do
-    centered_wrapped_cards(
+    comparison_cards(
       Enum.map(specs, fn {label, note, source} -> svg_weather_scale_card(label, note, source) end),
       960
     )
@@ -635,15 +636,16 @@ defmodule EmergeDemo.Showcase.View.Assets do
   defp svg_weather_scale_card(label, note, source) do
     sizes = [24, 48, 80]
 
-    el(
+    column(
       [
         width(px(300)),
+        height(px(230)),
         padding(12),
         spacing(10),
         Background.color(dark_card_bg()),
         Border.rounded(12)
       ],
-      column([spacing(10)], [
+      [
         row([width(fill()), spacing(8)], [
           el([width(fill()), Font.size(12), Font.color(color(:white))], text(label)),
           weather_badge("SVG", color_rgba(66, 89, 122, 170 / 255))
@@ -672,7 +674,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
             )
           end)
         )
-      ])
+      ]
     )
   end
 
@@ -688,7 +690,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
     ]
 
     column([spacing(12)], [
-      centered_wrapped_cards(
+      comparison_cards(
         Enum.map(cards, fn {label, note, tint, tint_label} ->
           svg_tint_card(source, label, note, tint, tint_label)
         end),
@@ -699,7 +701,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
           "Tint also overrides multicolor SVGs, so illustrations and logos flatten into one themed silhouette when Svg.color/1 is set."
         )
       ]),
-      centered_wrapped_cards(
+      comparison_cards(
         [
           svg_tint_card(
             multicolor_source,
@@ -737,20 +739,23 @@ defmodule EmergeDemo.Showcase.View.Assets do
         ^amber_tint -> color_rgba(138, 96, 28, 190 / 255)
       end
 
-    el(
+    column(
       [
         width(px(228)),
+        height(px(270)),
         padding(12),
         spacing(10),
         Background.color(color_rgb(46, 48, 72)),
         Border.rounded(12)
       ],
-      column([spacing(10)], [
+      [
         row([width(fill()), spacing(8)], [
           el([width(fill()), Font.size(12), Font.color(color(:white))], text(label)),
           weather_badge("svg/2", badge_tone)
         ]),
-        paragraph([width(fill()), spacing(3), Font.size(10), Font.color(dim_text())], [text(note)]),
+        paragraph([width(fill()), spacing(3), Font.size(10), Font.color(dim_text())], [
+          text(note)
+        ]),
         el(
           [
             center_x(),
@@ -767,7 +772,7 @@ defmodule EmergeDemo.Showcase.View.Assets do
           [Font.size(10), Font.color(color_rgb(213, 219, 234))],
           text(tint_label)
         )
-      ])
+      ]
     )
   end
 
@@ -1019,10 +1024,10 @@ defmodule EmergeDemo.Showcase.View.Assets do
     round(temp_c * 9 / 5 + 32)
   end
 
-  # Code previews
+  # Focused code snippets
 
   defp assets_overview_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     image([width(px(120)), height(px(120)), Border.rounded(10)], ~m"demo_images/static.jpg")
 
     el([
@@ -1030,74 +1035,79 @@ defmodule EmergeDemo.Showcase.View.Assets do
       height(px(160)),
       Background.image(~m"demo_images/fallback.jpg", fit: :cover)
     ], none())
-    """
+    """)
   end
 
   defp svg_weather_code do
-    ~S"""
-    wrapped_row([], Enum.map(days, fn day ->
-      column([], [
-        svg([width(px(58)), height(px(58)), image_fit(:contain)], weather_icon_source(day.kind)),
-        text(day.day)
-      ])
-    end))
-    """
+    CodeBlock.snippet(~S"""
+    days
+    |> Enum.chunk_every(4)
+    |> Enum.map(fn days ->
+      row([spacing(12)], Enum.map(days, fn day ->
+        column([], [
+          svg([width(px(58)), height(px(58))], weather_icon_source(day.kind)),
+          text(day.day)
+        ])
+      end))
+    end)
+    |> then(&column([spacing(12)], &1))
+    """)
   end
 
   defp svg_scaling_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     Enum.map([24, 48, 80], fn size ->
       svg([width(px(size)), height(px(size)), image_fit(:contain)], ~m"demo_images/weather_sun.svg")
     end)
-    """
+    """)
   end
 
   defp svg_tint_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     svg([width(px(72)), height(px(72))], ~m"demo_images/template_cloud.svg")
 
     svg(
       [width(px(72)), height(px(72)), Svg.color(color(:sky, 500))],
       ~m"demo_images/template_cloud.svg"
     )
-    """
+    """)
   end
 
   defp source_cards_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     image([width(px(160)), height(px(120))], ~m"demo_images/static.jpg")
     image([width(px(160)), height(px(120))], {:path, runtime_path})
     svg([width(px(80)), height(px(80))], ~m"demo_images/weather_sun.svg")
     image([width(px(160)), height(px(120))], {:path, blocked_path})
-    """
+    """)
   end
 
   defp font_cards_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([Font.family("lobster-demo"), Font.size(22)], text("Asset Fonts 123"))
     el([Font.family("lobster-demo"), Font.bold(), Font.italic()], text("Synthetic style"))
-    """
+    """)
   end
 
   defp image_fit_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     image([width(fill()), height(fill()), image_fit(:contain)], ~m"demo_images/static.jpg")
     image([width(fill()), height(fill()), image_fit(:cover)], ~m"demo_images/static.jpg")
-    """
+    """)
   end
 
   defp background_helpers_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     Background.image(~m"demo_images/tile_bird_small.jpg")
     Background.uncropped(~m"demo_images/tile_bird_small.jpg")
     Background.tiled(~m"demo_images/tile_bird_small.jpg")
     Background.tiled_x(~m"demo_images/tile_bird_small.jpg")
     Background.tiled_y(~m"demo_images/tile_bird_small.jpg")
-    """
+    """)
   end
 
   defp background_fit_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       width(px(280)),
       height(px(120)),
@@ -1109,51 +1119,23 @@ defmodule EmergeDemo.Showcase.View.Assets do
       height(px(120)),
       Background.image(~m"demo_images/static.jpg", fit: :cover)
     ], none())
-    """
+    """)
   end
 
   defp demo_policy_code do
-    ~S"""
-    emerge_skia: [
+    CodeBlock.snippet(~S"""
+    [emerge_skia: [
       otp_app: :emerge_demo,
       assets: [
         fonts: [[family: "lobster-demo", source: ~m"demo_fonts/Lobster-Regular.ttf", weight: 400]],
         runtime_paths: [enabled: true, allowlist: [runtime_allowlist_root]]
       ]
-    ]
-    """
-  end
-
-  # Generic elements
-
-  defp assets_example(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
+    ]]
+    """)
   end
 
   # Palette
 
-  defp title_text, do: color_rgb(24, 30, 38)
-  defp body_text, do: color_rgb(92, 100, 114)
   defp dark_card_bg, do: color_rgb(50, 50, 74)
   defp dark_panel_bg, do: color_rgb(34, 34, 50)
   defp dim_text, do: color_rgb(191, 199, 222)

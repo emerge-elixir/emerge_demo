@@ -3,7 +3,8 @@ defmodule EmergeDemo.Showcase.View.Keys do
   use Solve.Lookup, :helpers
 
   alias EmergeDemo.Showcase
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
 
   # Page composition
 
@@ -20,11 +21,11 @@ defmodule EmergeDemo.Showcase.View.Keys do
 
   defp scroll_identity_section(keys) do
     column([width(fill()), spacing(16)], [
-      section_title("Keyed scroll state"),
-      section_copy(
-        "Reorder sibling cards without changing their inner lists. Keys belong on the reordered card roots here, so the nested scrollbar state can stay attached to each label."
+      Example.heading("If I move, am I still the same card?"),
+      Example.prose(
+        "A renderer normally reuses siblings by position. A key gives a sibling an identity instead. Scroll one card, then move it: its scroll position tells us which identity survived."
       ),
-      keys_example(
+      Example.layout(
         "Rotate outer cards",
         "Scroll Bravo or Delta to a distinct position, then rotate the cards. Without keys, the inner scrollbar state stays with the reused slot. With keys, it stays with the same labeled card.",
         {:keys, :scroll_state},
@@ -56,11 +57,11 @@ defmodule EmergeDemo.Showcase.View.Keys do
 
   defp focused_input_section(keys) do
     column([width(fill()), spacing(16)], [
-      section_title("Focused input state"),
-      section_copy(
-        "Focused text inputs keep Rust-owned caret and selection state across rebuilds. Insert a new row above the focused field to compare focus following the reused slot versus the keyed row."
+      Example.heading("Does my focus move with me?"),
+      Example.prose(
+        "Focus, caret, and selection are renderer-owned state too. Keep an input focused and insert a row above it. A stable key lets that state follow the logical row rather than its old position."
       ),
-      keys_example(
+      Example.layout(
         "Prepend above the focused field",
         "Click into Bravo or Charlie, place the caret in the middle or type a few letters, then press Ctrl+N while the field stays focused. Without keys, the live edit state jumps to whichever row reuses that slot. With keys, it stays with the same labeled row.",
         {:keys, :focused_input},
@@ -192,28 +193,26 @@ defmodule EmergeDemo.Showcase.View.Keys do
   end
 
   defp scroll_state_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     Input.button([Event.on_press(event(keys, :rotate_scroll_items))], text("Rotate cards"))
 
     Enum.map(items, fn item ->
-      column([
-        if keyed?, do: key({:keys, :scroll, item.id})
-      ], [
+      attrs = if keyed?, do: [key({:keys, :scroll, item.id})], else: []
+      column(attrs, [
         text(item.label),
         el([height(px(108)), scrollbar_y()],
           column([], Enum.map(item.children, &text/1))
         )
       ])
     end)
-    """
+    """)
   end
 
   defp focused_input_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     Enum.map(rows, fn row ->
-      column([
-        if keyed?, do: key({:keys, :input, row.id})
-      ], [
+      attrs = if keyed?, do: [key({:keys, :input, row.id})], else: []
+      column(attrs, [
         text(row.label),
         Input.text(
           [
@@ -223,24 +222,10 @@ defmodule EmergeDemo.Showcase.View.Keys do
         )
       ])
     end)
-    """
+    """)
   end
 
   # Generic elements
-
-  defp keys_example(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
 
   defp comparison_grid(panels) do
     wrapped_row([width(fill()), spacing_xy(16, 16)], panels)
@@ -317,16 +302,6 @@ defmodule EmergeDemo.Showcase.View.Keys do
         ])
       ]
     )
-  end
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
   end
 
   # Palette

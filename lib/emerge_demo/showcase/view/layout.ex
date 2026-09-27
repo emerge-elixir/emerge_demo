@@ -1,7 +1,46 @@
 defmodule EmergeDemo.Showcase.View.Layout do
   use Emerge.UI
 
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
+
+  @lessons %{
+    shrink_fill:
+      {"Let content choose, then fill the rest",
+       "The first box asks for just enough room for its label. The second takes the remaining width."},
+    weighted_fill:
+      {"Share the remaining space",
+       "Give fill a weight when siblings should grow in different proportions. These three boxes divide free space in a 1:2:3 ratio."},
+    min_max:
+      {"Put a limit on a flexible size",
+       "max keeps the first box at least 140 pixels wide. min stops the second at 180 pixels, even when more room is available."},
+    space_evenly:
+      {"Let the gaps do the growing",
+       "The chips keep their content widths. space_evenly puts the remaining width between them."},
+    wrapped_row:
+      {"What if the row runs out of room?",
+       "A wrapped_row moves children onto the next line when they no longer fit. Horizontal and vertical gaps are controlled separately."},
+    transform_slot:
+      {"Move the paint, keep the slot",
+       "The outline marks the original layout slot. The painted card moves and rotates without pushing its neighbour."},
+    transform_cards:
+      {"Rotate, scale, or fade",
+       "Transform helpers affect painting. Compare the three cards: their layout slots do not change with their appearance."},
+    layout_scale:
+      {"Make space for a larger child",
+       "Unlike Transform.scale, scale changes measurement. The following sibling moves to make room for the enlarged card."},
+    layout_rotate:
+      {"Make space for a rotated child",
+       "rotate includes the rotated bounds in layout. Notice the space around the middle card and the position of the next sibling."},
+    layout_transform_animation:
+      {"Now change that space over time",
+       "The middle card animates its layout-aware scale and rotation. Watch its neighbours move as its measured bounds change."}
+  }
+
+  defp layout_example({:layout, name} = id, code, demo) do
+    {title, explanation} = Map.fetch!(@lessons, name)
+    Example.layout(title, explanation, id, code, demo)
+  end
 
   # Page composition
 
@@ -19,34 +58,36 @@ defmodule EmergeDemo.Showcase.View.Layout do
 
   defp sizing_section do
     column([width(fill()), spacing(16)], [
-      section_title("Layout + Sizing"),
-      section_copy("Fill, shrink, weighted fill, and min/max constraints."),
-      View.hover_example({:layout, :shrink_fill}, shrink_fill_code(), shrink_fill_example()),
-      View.hover_example(
+      Example.heading("Start with a size"),
+      Example.prose(
+        "A child can ask for the size of its content or a share of its parent. Let's compare those choices before adding limits."
+      ),
+      layout_example({:layout, :shrink_fill}, shrink_fill_code(), shrink_fill_example()),
+      layout_example(
         {:layout, :weighted_fill},
         weighted_fill_code(),
         weighted_fill_example()
       ),
-      View.hover_example({:layout, :min_max}, min_max_code(), min_max_example())
+      layout_example({:layout, :min_max}, min_max_code(), min_max_example())
     ])
   end
 
   defp spacing_section do
     column([width(fill()), spacing(16)], [
-      section_title("Spacing + Wrapping"),
-      section_copy(
-        "Use space distribution and wrapped rows to keep layouts readable as the viewport changes."
+      Example.heading("When a row runs out of room"),
+      Example.prose(
+        "We have sized the children. Now decide what happens to the gaps, and what happens when those children no longer fit on one line."
       ),
-      View.hover_example({:layout, :space_evenly}, space_evenly_code(), space_evenly_example()),
-      View.hover_example({:layout, :wrapped_row}, wrapped_row_code(), wrapped_row_example())
+      layout_example({:layout, :space_evenly}, space_evenly_code(), space_evenly_example()),
+      layout_example({:layout, :wrapped_row}, wrapped_row_code(), wrapped_row_example())
     ])
   end
 
   defp alignment_section do
     column([width(fill()), spacing(16)], [
-      section_title("Alignment"),
-      section_copy(
-        "Resize the window to observe how horizontal and vertical alignment respond inside flexible rows and fixed frames."
+      Example.heading("Put a child where it belongs"),
+      Example.prose(
+        "Horizontal and vertical alignment position children inside flexible rows and fixed frames."
       ),
       alignment_tokens_demo(),
       fixed_alignment_demo(),
@@ -57,16 +98,16 @@ defmodule EmergeDemo.Showcase.View.Layout do
 
   defp transforms_section do
     column([width(fill()), spacing(16)], [
-      section_title("Transforms"),
-      section_copy(
+      Example.heading("Or move only the paint"),
+      Example.prose(
         "Paint transforms change what is drawn without changing sibling placement. Use these when the original layout slot should stay fixed."
       ),
-      View.hover_example(
+      layout_example(
         {:layout, :transform_slot},
         transform_slot_code(),
         transform_slot_demo()
       ),
-      View.hover_example(
+      layout_example(
         {:layout, :transform_cards},
         transform_cards_code(),
         transform_cards_demo()
@@ -76,21 +117,21 @@ defmodule EmergeDemo.Showcase.View.Layout do
 
   defp layout_aware_transforms_section do
     column([width(fill()), spacing(16)], [
-      section_title("Layout-Aware Scale + Rotate"),
-      section_copy(
+      Example.heading("Let transforms take up space"),
+      Example.prose(
         "Top-level scale/1 and rotate/1 participate in measurement, sibling placement, scroll extents, and hit testing."
       ),
-      View.hover_example(
+      layout_example(
         {:layout, :layout_scale},
         layout_scale_code(),
         layout_scale_demo()
       ),
-      View.hover_example(
+      layout_example(
         {:layout, :layout_rotate},
         layout_rotate_code(),
         layout_rotate_demo()
       ),
-      View.hover_example(
+      layout_example(
         {:layout, :layout_transform_animation},
         layout_transform_animation_code(),
         layout_transform_animation_demo()
@@ -153,25 +194,27 @@ defmodule EmergeDemo.Showcase.View.Layout do
   end
 
   defp wrapped_row_example do
-    wrapped_row(
-      [width(fill()), spacing_xy(16, 18)],
-      Enum.map(
-        [
-          "Spacing",
-          "X/Y",
-          "Wrapped",
-          "Row",
-          "Example",
-          "Resize",
-          "The",
-          "Window",
-          "To",
-          "Observe",
-          "How",
-          "It",
-          "Reflows"
-        ],
-        &chip/1
+    el(
+      [width(fill()), height(px(110)), scrollbar_y()],
+      wrapped_row(
+        [width(fill()), spacing_xy(16, 18)],
+        Enum.map(
+          [
+            "Spacing",
+            "X/Y",
+            "Wrapped",
+            "Row",
+            "Example",
+            "Horizontal",
+            "And",
+            "Vertical",
+            "Gaps",
+            "Between",
+            "Child",
+            "Elements"
+          ],
+          &chip/1
+        )
       )
     )
   end
@@ -421,45 +464,45 @@ defmodule EmergeDemo.Showcase.View.Layout do
   end
 
   defp shrink_fill_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill()), spacing(12)], [
       el([width(shrink()), padding(10)], text("Shrink")),
       el([width(fill()), padding(10)], text("Fill"))
     ])
-    """
+    """)
   end
 
   defp weighted_fill_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill()), spacing(8)], [
       el([width(fill(1)), padding(8)], text("Fill 1")),
       el([width(fill(2)), padding(8)], text("Fill 2")),
       el([width(fill(3)), padding(8)], text("Fill 3"))
     ])
-    """
+    """)
   end
 
   defp min_max_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill()), spacing(12)], [
       el([width(max(px(140), shrink()))], text("Max + shrink")),
       el([width(min(px(180), fill()))], text("Min + fill"))
     ])
-    """
+    """)
   end
 
   defp space_evenly_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill()), space_evenly()], [
       chip("Space"),
       chip("Between"),
       chip("Items")
     ])
-    """
+    """)
   end
 
   defp wrapped_row_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     wrapped_row([width(fill()), spacing_xy(16, 18)], [
       chip("Spacing"),
       chip("X/Y"),
@@ -467,51 +510,51 @@ defmodule EmergeDemo.Showcase.View.Layout do
       chip("Row"),
       chip("Reflows")
     ])
-    """
+    """)
   end
 
   defp alignment_tokens_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill()), spacing(10)], [
       el([], text("Left")),
       el([align_left()], text("Left 2")),
       el([center_x()], text("Center")),
       el([align_right()], text("Right"))
     ])
-    """
+    """)
   end
 
   defp fixed_alignment_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     wrapped_row([width(fill()), spacing_xy(12, 12)], [
       el([width(px(180)), center_x()], text("Centered text")),
       el([width(px(180)), align_right()], text("Right-aligned"))
     ])
-    """
+    """)
   end
 
   defp nested_alignment_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill())], [
       el([width(px(200)), center_x()],
         el([width(fill()), align_right()], text("Centered box, right text"))
       )
     ])
-    """
+    """)
   end
 
   defp centered_content_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([width(fill()), height(px(80))],
       el([width(fill()), height(fill()), center_x(), center_y()],
         text("Centered content")
       )
     )
-    """
+    """)
   end
 
   defp transform_slot_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([width(px(128)), height(px(76)), Nearby.in_front(
       el([
         width(fill()),
@@ -527,41 +570,41 @@ defmodule EmergeDemo.Showcase.View.Layout do
         ])
       ]))
     )], text("Original slot"))
-    """
+    """)
   end
 
   defp transform_cards_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     wrapped_row([width(fill()), padding_each(6, 0, 14, 0), spacing_xy(12, 12)], [
       el([width(px(170)), Transform.rotate(-8)], text("Rotate")),
       el([width(px(170)), Transform.scale(1.08)], text("Scale")),
       el([width(px(170)), Transform.alpha(0.6)], text("Alpha"))
     ])
-    """
+    """)
   end
 
   defp layout_scale_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     wrapped_row([width(fill()), spacing_xy(18, 18)], [
       el([width(px(160)), height(px(64))], text("Normal")),
       el([width(px(160)), height(px(64)), scale(1.25)], text("scale(1.25)")),
       el([width(px(160)), height(px(64))], text("Next sibling"))
     ])
-    """
+    """)
   end
 
   defp layout_rotate_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     wrapped_row([width(fill()), spacing_xy(24, 24)], [
       el([width(px(160)), height(px(64))], text("Before")),
       el([width(px(160)), height(px(64)), rotate(-24)], text("rotate(-24)")),
       el([width(px(160)), height(px(64))], text("After"))
     ])
-    """
+    """)
   end
 
   defp layout_transform_animation_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     wrapped_row([width(fill()), spacing_xy(24, 24)], [
       el([width(px(160)), height(px(64))], text("Anchor")),
       el([
@@ -575,20 +618,10 @@ defmodule EmergeDemo.Showcase.View.Layout do
       ], text("Animated")),
       el([width(px(160)), height(px(64))], text("Follower"))
     ])
-    """
+    """)
   end
 
   # Generic elements
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
-  end
 
   defp chip(label) do
     el(
@@ -604,13 +637,12 @@ defmodule EmergeDemo.Showcase.View.Layout do
   end
 
   defp alignment_example(title, example_id, code, content) do
-    View.hover_example(
+    Example.layout(
+      title,
+      "Alignment attributes position the child within its available space.",
       example_id,
       code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        content
-      ])
+      content
     )
   end
 
@@ -673,8 +705,6 @@ defmodule EmergeDemo.Showcase.View.Layout do
     %{surface: color_rgb(85, 65, 95), title: color(:white), detail: color_rgb(225, 215, 235)}
   end
 
-  defp title_text, do: color_rgb(24, 30, 38)
-  defp body_text, do: color_rgb(92, 100, 114)
   defp chip_bg, do: color_rgb(55, 60, 90)
   defp chip_text, do: color_rgb(255, 255, 255)
   defp alignment_surface, do: color_rgb(55, 55, 80)

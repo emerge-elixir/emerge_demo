@@ -1,7 +1,8 @@
 defmodule EmergeDemo.Showcase.View.Scroll do
   use Emerge.UI
 
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
 
   # Page composition
 
@@ -16,18 +17,18 @@ defmodule EmergeDemo.Showcase.View.Scroll do
 
   defp single_axis_section do
     column([width(fill()), spacing(16)], [
-      section_title("Single-axis scroll"),
-      section_copy(
-        "Resize the window and scroll inside the panels to compare vertical overflow with horizontal overflow."
+      Example.heading("First, give the content a boundary"),
+      Example.prose(
+        "Scrolling needs both overflow and a bounded viewport. Give a long list a fixed height, or a long row a fixed width, then choose the axis."
       ),
-      scroll_demo(
+      Example.layout(
         "Vertical overflow",
         "Bound the panel height and let a longer list continue below the fold.",
         {:scroll, :vertical},
         vertical_scroll_code(),
         vertical_scroll_example()
       ),
-      scroll_demo(
+      Example.layout(
         "Horizontal overflow",
         "Keep chips on one line so overflow moves sideways instead of wrapping.",
         {:scroll, :horizontal},
@@ -39,18 +40,18 @@ defmodule EmergeDemo.Showcase.View.Scroll do
 
   defp advanced_scroll_section do
     column([width(fill()), spacing(16)], [
-      section_title("Advanced overflow"),
-      section_copy(
-        "Use both-axis scrolling for oversized surfaces, and use nested vertical panels when inner and outer regions need independent scroll ranges."
+      Example.heading("More content, more than one boundary"),
+      Example.prose(
+        "A canvas may overflow in both directions. A nested list may need its own scroll position. Try each region separately and notice which one consumes the movement."
       ),
-      scroll_demo(
+      Example.layout(
         "Both axes",
         "Scroll the oversized canvas horizontally and vertically inside the same bounded frame.",
         {:scroll, :both_axes},
         both_axes_scroll_code(),
         both_axes_scroll_example()
       ),
-      scroll_demo(
+      Example.layout(
         "Nested vertical scroll",
         "Scroll inside the nested panel first, then keep scrolling the outer section once the inner list reaches its limit.",
         {:scroll, :nested},
@@ -166,84 +167,55 @@ defmodule EmergeDemo.Showcase.View.Scroll do
   end
 
   defp vertical_scroll_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([height(px(180)), scrollbar_y()],
-      column([spacing(8)], [
-        text("Item 1"),
-        text("Item 2"),
-        text("Item 3")
-      ])
+      column([spacing(8)],
+        Enum.map(1..12, fn i -> text("Item #{i}") end)
+      )
     )
-    """
+    """)
   end
 
   defp horizontal_scroll_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([width(min(px(360), fill())), height(px(92)), scrollbar_x()],
-      row([spacing(10)], [
-        text("Design"),
-        text("Docs"),
-        text("Layout"),
-        text("Rendering")
-      ])
+      row([spacing(10)],
+        Enum.map(["Design", "Docs", "Layout", "Rendering", "Events", "Assets", "More"], fn label ->
+          el([padding(12)], text(label))
+        end)
+      )
     )
-    """
+    """)
   end
 
   defp both_axes_scroll_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([width(min(px(320), fill())), height(px(200)), scrollbar_x(), scrollbar_y()],
       el([width(px(640)), height(px(360))],
         text("Oversized canvas")
       )
     )
-    """
+    """)
   end
 
   defp nested_scroll_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([height(px(260)), scrollbar_y()],
       column([spacing(12)], [
         text("Outer item 1"),
         text("Outer item 2"),
         el([height(px(140)), scrollbar_y()],
-          column([spacing(8)], [
-            text("Nested item 1"),
-            text("Nested item 2"),
-            text("Nested item 3")
-          ])
+          column([spacing(8)],
+            Enum.map(1..10, fn i -> text("Nested item #{i}") end)
+          )
         ),
         text("Outer item 3")
       ])
     )
-    """
+    """)
   end
 
   # Generic elements
-
-  defp scroll_demo(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
-  end
 
   defp scroll_item(label) do
     el(
@@ -324,6 +296,4 @@ defmodule EmergeDemo.Showcase.View.Scroll do
   defp nested_label_text, do: color_rgb(72, 96, 168)
   defp nested_item_bg, do: color_rgb(227, 234, 248)
   defp nested_item_text, do: color_rgb(45, 70, 142)
-  defp title_text, do: color_rgb(24, 30, 38)
-  defp body_text, do: color_rgb(92, 100, 114)
 end

@@ -51,7 +51,8 @@ The desktop window uses the separate macOS host, which accepts owned RGBA8888 vi
 - Open the menu in the top-left corner to switch between `Todo` and `Showcase`.
 - `Todo` is the main end-to-end example.
 - `Showcase` contains smaller focused examples of layout, text, assets, borders, nearby overlays, scroll, keys, interaction, animation, and VideoInterop.
-- The `Animation` tab pairs live demos with always-visible Elixir recipes highlighted by Makeup Emerge: expanding labels, an SVG highlight sweep, sidebar, accordion, notification enter/exit, and an orbiting glow. Toggle controls mid-animation to reverse retained transitions; narrow windows can scroll each code/demo pair horizontally.
+- Every showcase tab presents examples alongside explanations and always-visible Makeup-highlighted Elixir snippets. The snippets are read-only, not an interactive code editor. Narrow windows can scroll each code/example pair horizontally. Code never depends on hovering.
+- `Animation` covers expanding labels, an SVG highlight sweep, sidebar, accordion, notification enter/exit, and an orbiting glow. Toggle controls mid-animation to reverse retained transitions.
 - The `Video Interop` tab compares five Membrane paths: standard looping H.264 playback decoded to owned RGBA8888, separate VAAPI-decoded H.264 and H.265 NV12 DMA-BUF streams, a GPU renderer DMA-BUF stream, and a CPU raster owned-binary stream.
 - The bundled H.264 and H.265 clips are derived from *Big Buck Bunny* under CC BY 3.0; attribution and conversion details are in [`priv/video/README.md`](priv/video/README.md).
 
@@ -68,6 +69,8 @@ From there, `lib/emerge_demo/todo/app.ex` is a good example of how a `Solve` app
 `lib/emerge_demo/todo/view.ex` shows the other side of that setup: it reads exposed state with `Solve.Lookup` and renders the Todo UI with `Emerge`.
 
 `lib/emerge_demo/showcase/` follows the same broad pattern, but is organized as smaller focused examples instead of one app flow.
+
+`showcase/view/example.ex` provides the shared explanation/code/demo layout. `CodeBlock.snippet/1` compiles literal Elixir recipes to Makeup Emerge trees at build time, so typing or receiving a video status update does not run the lexer again. Snippets focus on the demonstrated API; surrounding styling and helper definitions are omitted.
 
 ## Video Interop Validation
 

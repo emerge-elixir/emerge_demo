@@ -1,7 +1,8 @@
 defmodule EmergeDemo.Showcase.View.Text do
   use Emerge.UI
 
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
 
   # Page composition
 
@@ -20,11 +21,11 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   defp font_section do
     column([width(fill()), spacing(16)], [
-      section_title("Font"),
-      section_copy(
-        "Font attrs inherit through the tree, so container-level defaults can establish the tone while children override only what needs to change."
+      Example.heading("A font follows its children"),
+      Example.prose(
+        "Put a font on a parent and its children inherit it. Override one child when it needs a different size, weight, or style; the others keep the default."
       ),
-      text_example(
+      Example.layout(
         "Inheritance, size, weight, and style",
         "Compare inherited body styling with size steps and common weight/style combinations.",
         {:text, :font_basics},
@@ -42,11 +43,11 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   defp decoration_spacing_section do
     column([width(fill()), spacing(16)], [
-      section_title("Decoration + Spacing"),
-      section_copy(
-        "Underline, strike, letter spacing, and word spacing all shape rhythm and emphasis without changing layout placement."
+      Example.heading("Give a word some emphasis"),
+      Example.prose(
+        "Keep the same words and change their treatment. Decoration changes the paint; letter and word spacing also change the measured text width."
       ),
-      text_example(
+      Example.layout(
         "Decoration and spacing",
         "Compare line decoration with tracked and spaced labels.",
         {:text, :decoration_spacing},
@@ -61,11 +62,11 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   defp text_alignment_section do
     column([width(fill()), spacing(16)], [
-      section_title("Text Alignment"),
-      section_copy(
-        "Font alignment changes how text sits inside its content box. It does not move the box itself through a row or column."
+      Example.heading("Align the text, not the box"),
+      Example.prose(
+        "A box can stay in place while the text inside it moves left, right, or to the centre. Compare these with the child alignment examples in Layout."
       ),
-      text_example(
+      Example.layout(
         "Alignment and inherited overrides",
         "Compare left, center, and right text alignment, then override inherited font settings on individual children.",
         {:text, :text_alignment},
@@ -80,11 +81,11 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   defp paragraph_section do
     column([width(fill()), spacing(16)], [
-      section_title("Paragraph"),
-      section_copy(
-        "Paragraphs wrap inline text naturally, so rich text can mix plain copy with styled spans and different line spacing in the same flow."
+      Example.heading("Let words share a line"),
+      Example.prose(
+        "A paragraph lets plain text and styled spans share the same wrapping flow. Narrow the window and watch them move together onto the next line."
       ),
-      text_example(
+      Example.layout(
         "Paragraph flow",
         "See wrapped body copy, inline styled spans, and how paragraph spacing changes readability.",
         {:text, :paragraph},
@@ -100,11 +101,11 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   defp document_flow_section do
     column([width(fill()), spacing(16)], [
-      section_title("Document Flow"),
-      section_copy(
-        "Document-style layouts combine headings, paragraphs, and text columns into readable article blocks without leaving the normal layout model."
+      Example.heading("Build a small document"),
+      Example.prose(
+        "We can now combine headings and paragraphs into an article. text_column provides content-sized document flow without a separate layout system."
       ),
-      text_example(
+      Example.layout(
         "Document cards and text columns",
         "Build article-like content with headings and grouped paragraphs, then switch to text_column for longer narrative blocks.",
         {:text, :document_flow},
@@ -119,11 +120,11 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   defp float_flow_section do
     column([width(fill()), spacing(16)], [
-      section_title("Float Flow"),
-      section_copy(
-        "align_left and align_right can float blocks inside paragraph and text_column content, letting copy wrap around richer inserts before returning to full width."
+      Example.heading("Let text flow around a block"),
+      Example.prose(
+        "Place a block at the left or right of a paragraph. The words use the space beside it, then return to the full width below it. Resize the window to see where that happens."
       ),
-      text_example(
+      Example.layout(
         "Paragraph and text_column floats",
         "Resize the page to see the same content reflow around floated blocks in both paragraph and text_column containers.",
         {:text, :float_flow},
@@ -491,47 +492,47 @@ defmodule EmergeDemo.Showcase.View.Text do
     )
   end
 
-  # Code previews
+  # Focused code snippets
 
   defp font_basics_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     column([Font.size(14), Font.color(color(:sky, 200))], [
       text("Inherited text"),
       row([], [text("Still inherited")])
     ])
 
     el([Font.bold()], text("Bold"))
-    """
+    """)
   end
 
   defp decoration_spacing_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([Font.underline()], text("Underline"))
     el([Font.strike()], text("Strike"))
     el([Font.letter_spacing(2.5)], text("TRACKED"))
     el([Font.word_spacing(5)], text("word spacing demo"))
-    """
+    """)
   end
 
   defp text_alignment_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([width(fill()), Font.align_left()], text("Left"))
     el([width(fill()), Font.center()], text("Center"))
     el([width(fill()), Font.align_right()], text("Right"))
-    """
+    """)
   end
 
   defp paragraph_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     paragraph([width(px(400))], [
       text("Wrapped body copy"),
       el([Font.bold()], text("inline span"))
     ])
-    """
+    """)
   end
 
   defp document_flow_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     column([], [
       el([Font.size(20), Font.bold()], text("Getting Started")),
       paragraph([], [text("Document paragraph")])
@@ -540,43 +541,19 @@ defmodule EmergeDemo.Showcase.View.Text do
     text_column([spacing(14)], [
       paragraph([], [text("Column paragraph")])
     ])
-    """
+    """)
   end
 
   defp float_flow_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     paragraph([], [
       el([align_left(), width(px(40)), height(px(40))], text("S")),
       text("Wrapped text around a floated block")
     ])
-    """
+    """)
   end
 
   # Generic elements
-
-  defp text_example(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
-  end
 
   defp decoration_chip(label, font_attrs, bg) do
     el(
@@ -637,6 +614,5 @@ defmodule EmergeDemo.Showcase.View.Text do
 
   # Palette
 
-  defp title_text, do: color_rgb(24, 30, 38)
   defp body_text, do: color_rgb(92, 100, 114)
 end

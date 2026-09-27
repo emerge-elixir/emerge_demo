@@ -1,7 +1,7 @@
 defmodule EmergeDemo.Showcase.View.AnimationCode do
   @moduledoc false
 
-  use Emerge.UI
+  alias EmergeDemo.Showcase.View.CodeBlock
 
   @sources %{
     expansion: ~S"""
@@ -132,31 +132,9 @@ defmodule EmergeDemo.Showcase.View.AnimationCode do
     """
   }
 
-  # Lex and format once at compilation, not on every interaction/rerender.
-  @highlighted Map.new(@sources, fn {id, source} ->
-                 {id,
-                  Makeup.highlight(String.trim(source),
-                    formatter: Makeup.Formatters.Emerge,
-                    formatter_options: [
-                      style: :monokai_style,
-                      attrs: [padding(16), Border.rounded(12)],
-                      paragraph_attrs: [Font.family("monospace"), Font.size(13)]
-                    ]
-                  )}
-               end)
+  @snippets Map.new(@sources, fn {id, source} -> {id, CodeBlock.compile(source)} end)
 
-  def source(id), do: Map.fetch!(@sources, id)
-
-  def layout(id) do
-    column([width(fill()), spacing(10)], [
-      el(
-        [Font.size(12), Font.bold(), Font.color(color_rgb(72, 96, 168))],
-        text("ELIXIR · use Emerge.UI")
-      ),
-      Map.fetch!(@highlighted, id),
-      paragraph([width(fill()), Font.size(12), Font.color(color_rgb(92, 100, 114))], [
-        text("Animation recipe · surrounding layout and controls omitted")
-      ])
-    ])
-  end
+  def snippet(id), do: Map.fetch!(@snippets, id)
+  def source(id), do: snippet(id).source
+  def layout(id), do: CodeBlock.layout(snippet(id))
 end

@@ -1,7 +1,8 @@
 defmodule EmergeDemo.Showcase.View.Borders do
   use Emerge.UI
 
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
 
   # Page composition
 
@@ -21,13 +22,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp border_styles_section do
     column([width(fill()), spacing(16)], [
-      section_title("Border Styles"),
-      section_copy(
-        "Border width participates in layout. Style, width, and radius then decide how that occupied edge is painted."
+      Example.heading("Start with an edge"),
+      Example.prose(
+        "Give a box a border width and colour. That width occupies layout space; solid, dashed, and dotted choose how to paint it."
       ),
-      border_example(
+      Example.layout(
         "Solid, dashed, and dotted borders",
-        "Compare style, width, and radius permutations without the full old matrix.",
+        "Keep the same label and compare the stroke pattern, thickness, and corners.",
         {:borders, :styles},
         border_styles_code(),
         border_recipe_grid(border_style_cards())
@@ -37,11 +38,11 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp pill_radius_section do
     column([width(fill()), spacing(16)], [
-      section_title("Pill Radius Clamp"),
-      section_copy(
-        "rounded(999) clamps to the element height, so circles and wide pills keep fills, borders, and clipping aligned."
+      Example.heading("How round can a corner become?"),
+      Example.prose(
+        "A very large radius is clamped to the box. The same rounded(999) forms a circle on a square and a pill on a wide label."
       ),
-      border_example(
+      Example.layout(
         "Large radius behaves like a true pill",
         "The same rounded(999) attr forms a circle on square badges and pills on wider labels.",
         {:borders, :pill_radius},
@@ -53,13 +54,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp per_edge_section do
     column([width(fill()), spacing(16)], [
-      section_title("Per-Edge Border Width"),
-      section_copy(
+      Example.heading("Give each edge its own width"),
+      Example.prose(
         "width_each/4 lets each edge contribute its own layout inset and painted stroke, so asymmetric borders can stay explicit."
       ),
-      border_example(
+      Example.layout(
         "Asymmetric and single-side widths",
-        "Keep just a few recipes to show the concept instead of every style permutation.",
+        "Compare an asymmetric frame with a single coloured edge. The content inset follows the widths you assign.",
         {:borders, :per_edge},
         per_edge_code(),
         border_recipe_grid(per_edge_cards())
@@ -69,13 +70,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp box_shadow_section do
     column([width(fill()), spacing(16)], [
-      section_title("Box Shadow"),
-      section_copy(
+      Example.heading("Lift the box without moving its neighbours"),
+      Example.prose(
         "Outer shadows are decorative only. Offset, blur, spread, and multiple layers change paint, not layout, so parent and child shadows can bleed and stack in the same composition."
       ),
-      border_example(
+      Example.layout(
         "Directional, diffuse, and stacked shadows",
-        "A smaller set still shows offset, spread, and multi-layer depth.",
+        "Change offset to move the shadow, blur to soften it, and size to spread it. Several shadow attributes make several layers.",
         {:borders, :shadow},
         box_shadow_code(),
         column([width(fill()), spacing(12)], [
@@ -88,13 +89,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp glow_section do
     column([width(fill()), spacing(16)], [
-      section_title("Glow"),
-      section_copy(
+      Example.heading("Remove the direction from a shadow"),
+      Example.prose(
         "glow/2 is just a zero-offset outer shadow, so color and intensity are the key variables."
       ),
-      border_example(
+      Example.layout(
         "Glow color and intensity",
-        "Trimmed to three cards so the different rim strengths are still easy to compare.",
+        "A glow is an outer shadow with no offset. Compare the same shape at three intensities.",
         {:borders, :glow},
         glow_code(),
         border_recipe_grid(glow_cards())
@@ -104,13 +105,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp inner_shadow_section do
     column([width(fill()), spacing(16)], [
-      section_title("Inner Shadow"),
-      section_copy(
+      Example.heading("Or push the surface inward"),
+      Example.prose(
         "Inner shadows stay inside the element, so they are useful for pressed, recessed, and tinted contour effects."
       ),
-      border_example(
+      Example.layout(
         "Centered, directional, and tinted inset shadows",
-        "Keep one neutral depth, one directional press, and one colored contour.",
+        "Compare a recessed surface, a directional press, and a coloured contour. Each shadow stays inside its host.",
         {:borders, :inner_shadow},
         inner_shadow_code(),
         border_recipe_grid(inner_shadow_cards())
@@ -120,13 +121,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
 
   defp combined_section do
     column([width(fill()), spacing(16)], [
-      section_title("Combined"),
-      section_copy(
+      Example.heading("Put the pieces together"),
+      Example.prose(
         "Multiple border attrs can be layered into more expressive recipes that still stay within the same border and shadow model."
       ),
-      border_example(
+      Example.layout(
         "Composed border recipes",
-        "A smaller recipe set still shows how borders, glow, shadow, and inset effects combine.",
+        "Combine the same independent attributes. No new component or special drawing command is needed.",
         {:borders, :combined},
         combined_code(),
         column([width(fill()), spacing(12)], [
@@ -307,7 +308,7 @@ defmodule EmergeDemo.Showcase.View.Borders do
       border_recipe_card(
         "Cyan soft",
         "Low intensity glow",
-        "Glow",
+        "Remove the direction from a shadow",
         [
           Background.color(color_rgb(36, 45, 64)),
           Border.rounded(8),
@@ -614,7 +615,7 @@ defmodule EmergeDemo.Showcase.View.Borders do
           ),
           row([width(fill()), spacing(8)], [
             showcase_chip("Rounded", color_rgba(255, 255, 255, 0.12)),
-            showcase_chip("Glow", color_rgba(255, 255, 255, 0.12)),
+            showcase_chip("Remove the direction from a shadow", color_rgba(255, 255, 255, 0.12)),
             showcase_chip("Inner depth", color_rgba(255, 255, 255, 0.12))
           ])
         ])
@@ -622,43 +623,43 @@ defmodule EmergeDemo.Showcase.View.Borders do
     )
   end
 
-  # Code previews
+  # Focused code snippets
 
   defp border_styles_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       Border.rounded(8),
       Border.width(2),
       Border.color(:orange),
       Border.dashed()
     ], text("Dashed medium round"))
-    """
+    """)
   end
 
   defp pill_radius_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       padding_xy(14, 8),
       Border.rounded(999),
       Border.width(1),
       Border.color(color(:slate, 300))
     ], text("Stable"))
-    """
+    """)
   end
 
   defp per_edge_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       Border.rounded(8),
       Border.width_each(4, 1, 4, 1),
       Border.color(:teal),
       Border.solid()
     ], text("Asymmetric"))
-    """
+    """)
   end
 
   defp box_shadow_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([width(fill()), spacing(14)], [
       el([
         Animation.animate([
@@ -679,29 +680,29 @@ defmodule EmergeDemo.Showcase.View.Borders do
         ], 2400, :linear, :loop)
       ], text("Right cast"))
     ])
-    """
+    """)
   end
 
   defp glow_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       Border.rounded(8),
       Border.glow(:cyan, 4)
     ], text("Glow"))
-    """
+    """)
   end
 
   defp inner_shadow_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       Border.rounded(8),
       Border.inner_shadow(offset: {3, 3}, blur: 8, color: :purple)
     ], text("Pressed"))
-    """
+    """)
   end
 
   defp combined_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       Background.color(gradient([color_rgb(67, 97, 150), color_rgb(111, 77, 189)], 135)),
       Border.rounded(18),
@@ -712,37 +713,13 @@ defmodule EmergeDemo.Showcase.View.Borders do
       Border.shadow(offset: {0, 14}, blur: 28, size: 4, color: color_rgba(15, 23, 42, 0.35)),
       Border.inner_shadow(offset: {0, 2}, blur: 12, color: color_rgba(0, 0, 0, 0.35))
     ], text("Everything on one card"))
-    """
+    """)
   end
 
   # Generic elements
 
-  defp border_example(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
-  end
-
   defp border_recipe_grid(cards) do
-    wrapped_row([width(fill()), spacing_xy(12, 12)], cards)
+    Example.comparison_rows(cards)
   end
 
   defp border_recipe_card(title, subtitle, sample_label, sample_attrs, detail_lines, opts \\ []) do

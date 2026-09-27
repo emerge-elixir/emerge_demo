@@ -4,7 +4,8 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   alias EmergeDemo.Showcase
   alias EmergeDemo.Showcase.AssetCatalog
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
 
   # Page composition
 
@@ -29,11 +30,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp interactive_section do
     column([width(fill()), spacing(16)], [
-      section_title("Interactive"),
-      section_copy(
-        "Interactive states are decorative. mouse_over and mouse_down change paint on the element without sending messages by themselves."
+      Example.heading("A visual response can stay local"),
+      Example.prose(
+        "Start with a card that responds to a pointer. mouse_over and mouse_down can change its appearance without sending an event or changing application state."
       ),
-      interaction_example(
+      Example.layout(
         "mouse_over + mouse_down",
         "Hover and press the card. Styling stays local to the element.",
         {:interaction, :interactive_states},
@@ -45,11 +46,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp hover_section do
     column([width(fill()), spacing(16)], [
-      section_title("Hover"),
-      section_copy(
-        "Compare event-managed hover with declarative mouse_over styling. They feel similar on screen, but only one updates app state."
+      Example.heading("What if the application needs to know?"),
+      Example.prose(
+        "Now send enter and leave events to Solve. Compare that with local mouse_over styling: the result may look similar, but only one changes the controller's state."
       ),
-      interaction_example(
+      Example.layout(
         "on_mouse_enter / on_mouse_leave vs mouse_over",
         "The left panel toggles Solve state with enter and leave events. The right panel stays fully declarative.",
         {:interaction, :hover_compare},
@@ -61,11 +62,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp mouse_section do
     column([width(fill()), spacing(16)], [
-      section_title("Mouse Down + Up"),
-      section_copy(
+      Example.heading("A press has a beginning and an end"),
+      Example.prose(
         "Mouse down and mouse up send explicit messages you can count or route into domain behavior."
       ),
-      interaction_example(
+      Example.layout(
         "on_mouse_down + on_mouse_up",
         "Press and release the card to update the counters below.",
         {:interaction, :mouse_press},
@@ -77,11 +78,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp swipe_section do
     column([width(fill()), spacing(16)], [
-      section_title("Swipe"),
-      section_copy(
+      Example.heading("Turn movement into a gesture"),
+      Example.prose(
         "Swipe gestures resolve on release. Press, drag past the deadzone, and release to send the final net direction into Solve state."
       ),
-      interaction_example(
+      Example.layout(
         "Swipe pad",
         "Drag in any direction, then release. Short drags and balanced diagonals are ignored so the pad does not misfire on casual movement.",
         {:interaction, :swipe_pad},
@@ -93,11 +94,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp transformed_hit_testing_section do
     column([width(fill()), spacing(16)], [
-      section_title("Transformed Hit Testing"),
-      section_copy(
+      Example.heading("The hit target follows the paint"),
+      Example.prose(
         "The faint outline shows the original slot. Pointer events should follow the transformed card you see in front, not the untouched slot behind it."
       ),
-      interaction_example(
+      Example.layout(
         "Translated, rotated, and scaled hit targets",
         "Hover, move, and press the transformed cards. The counters and last-move label should follow the painted shape you see in front.",
         {:interaction, :transformed_hit_testing},
@@ -132,11 +133,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
     value_label = if(text_input.value == "", do: "(empty)", else: text_input.value)
 
     column([width(fill()), spacing(16)], [
-      section_title("Text Input"),
-      section_copy(
-        "Input.text routes text changes and focus transitions through events. This first pass stops at routed element events and skips preedit diagnostics."
+      Example.heading("Let the application own the value"),
+      Example.prose(
+        "A controlled text input displays the value exposed by its controller. Editing sends a change event; the returned state supplies the next value. Focus and blur are separate events."
       ),
-      interaction_example(
+      Example.layout(
         "Input.text + on_change, on_focus, and on_blur",
         "Type into the field, focus it, and blur it to update the value and counters below.",
         {:interaction, :text_input},
@@ -165,12 +166,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
               ],
               text_input.value
             ),
-            el(
-              [Font.size(11), Font.color(panel_muted())],
+            paragraph([width(fill()), Font.size(11), Font.color(panel_muted())], [
               text(
                 "on_change emits each edit from Rust; on_focus and on_blur fire on focus transitions."
               )
-            ),
+            ]),
             wrapped_row([width(fill()), spacing_xy(8, 8)], [
               status_chip("State", status_label, status_bg, status_text),
               status_chip(
@@ -204,18 +204,18 @@ defmodule EmergeDemo.Showcase.View.Interaction do
     multiline_input = solve(Showcase.App, :multiline_input)
 
     column([width(fill()), spacing(16)], [
-      section_title("Multiline Input"),
-      section_copy(
+      Example.heading("Give that value more than one line"),
+      Example.prose(
         "Input.multiline defaults to a one-line minimum height, grows with wrapped content when height is omitted, and lets Enter insert newlines unless a matching key handler suppresses that default behavior."
       ),
-      interaction_example(
+      Example.layout(
         "Auto-growing Input.multiline",
         "Type more text, add blank lines, or resize the page narrower to watch the field grow with its wrapped content.",
         {:interaction, :multiline_auto_grow},
         multiline_auto_grow_code(),
         multiline_auto_grow_demo(multiline_input.grow)
       ),
-      interaction_example(
+      Example.layout(
         "on_key_down(:enter) suppresses default newline",
         "This second field intercepts Enter. The handler count increases, but the value stays on the same line unless you paste a newline explicitly.",
         {:interaction, :multiline_submit},
@@ -227,11 +227,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp input_styles_section do
     column([width(fill()), spacing(16)], [
-      section_title("Declarative Input Styling"),
-      section_copy(
+      Example.heading("The same states work on inputs"),
+      Example.prose(
         "Interactive states also work on inputs. Hover, focus, and press styles can live directly on the field without separate event state."
       ),
-      interaction_example(
+      Example.layout(
         "mouse_over + focused + mouse_down on Input.text",
         "Click into the field and hold the mouse to see how the decorative states layer.",
         {:interaction, :input_styles},
@@ -270,12 +270,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
               ],
               "Style showcase input"
             ),
-            el(
-              [Font.size(10), Font.color(panel_muted())],
+            paragraph([width(fill()), Font.size(10), Font.color(panel_muted())], [
               text(
                 "Merge order: mouse_over -> focused -> mouse_down (later styles win conflicts)."
               )
-            )
+            ])
           ])
         )
       )
@@ -284,11 +283,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp slider_input_section do
     column([width(fill()), spacing(16)], [
-      section_title("Slider Input"),
-      section_copy(
+      Example.heading("Change a number instead of text"),
+      Example.prose(
         "Input.slider is a controlled numeric input. Pointer drag and focused keyboard updates emit numeric on_change payloads, while Slider.config owns range, step, track, filled-track, and thumb slots."
       ),
-      interaction_example(
+      Example.layout(
         "Input.slider + Slider.config",
         "Drag the rails, click the tracks, or focus a slider and use arrow keys, Home, End, PageUp, and PageDown. The custom examples use normal Emerge elements as the track and thumb.",
         {:interaction, :slider_input},
@@ -309,11 +308,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       end
 
     column([width(fill()), spacing(16)], [
-      section_title("Input.button"),
-      section_copy(
+      Example.heading("Run an action with a button"),
+      Example.prose(
         "Buttons belong on the input half of the page. on_press, on_focus, and on_blur all route through Solve state."
       ),
-      interaction_example(
+      Example.layout(
         "Input.button + on_press",
         "Click or Tab to focus the button, then press Enter to trigger on_press.",
         {:interaction, :input_button},
@@ -382,10 +381,9 @@ defmodule EmergeDemo.Showcase.View.Interaction do
                 color_rgb(228, 212, 246)
               )
             ]),
-            el(
-              [Font.size(10), Font.color(panel_muted())],
+            paragraph([width(fill()), Font.size(10), Font.color(panel_muted())], [
               text("Press fires on click, and also on Enter when this button is focused.")
-            )
+            ])
           ])
         )
       )
@@ -403,11 +401,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       end
 
     column([width(fill()), spacing(16)], [
-      section_title("Focused Key Listener"),
-      section_copy(
+      Example.heading("Listen only while focused"),
+      Example.prose(
         "Focused elements can listen for direct keyboard events. This pad demonstrates down, up, and completed key press handling."
       ),
-      interaction_example(
+      Example.layout(
         "on_key_down, on_key_up, and on_key_press",
         "Click or Tab onto the pad, then try Enter, Ctrl+1, Arrow Left, Escape, and Space.",
         {:interaction, :key_listener},
@@ -450,10 +448,9 @@ defmodule EmergeDemo.Showcase.View.Interaction do
               ],
               column([spacing(8)], [
                 el([Font.size(14), Font.color(color(:white))], text("Keyboard listener pad")),
-                el(
-                  [Font.size(11), Font.color(color_rgb(214, 220, 240))],
+                paragraph([width(fill()), Font.size(11), Font.color(color_rgb(214, 220, 240))], [
                   text("Focused-only routing. No on_press handler here - only direct key events.")
-                ),
+                ]),
                 wrapped_row([width(fill()), spacing_xy(8, 8)], [
                   status_chip(
                     "Enter",
@@ -486,12 +483,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
                     color_rgb(248, 234, 246)
                   )
                 ]),
-                el(
-                  [Font.size(10), Font.color(color_rgb(196, 204, 228))],
+                paragraph([width(fill()), Font.size(10), Font.color(color_rgb(196, 204, 228))], [
                   text(
                     "Tip: click once to focus, then hold Ctrl while pressing 1 to hit the modifier matcher. Space completes on key release here, so the press counter updates after the key comes back up."
                   )
-                )
+                ])
               ])
             ),
             wrapped_row([width(fill()), spacing_xy(8, 8)], [
@@ -573,11 +569,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
     soft_keyboard = solve(Showcase.App, :soft_keyboard)
 
     column([width(fill()), spacing(16)], [
-      section_title("Virtual Keyboard"),
-      section_copy(
+      Example.heading("A key does not have to be physical"),
+      Example.prose(
         "Each key below is a plain Emerge tree node using Event.virtual_key/1. Use the nearby targets to test text input, buttons, focused key listeners, and Tab-based focus switching."
       ),
-      interaction_example(
+      Example.layout(
         "Event.virtual_key/1",
         "Use Tab to move focus through the nearby targets, use Shift for uppercase and symbols, and hold accented letters like A, E, I, O, U, C, or N to open alternates that close after selection.",
         {:interaction, :virtual_keyboard},
@@ -750,7 +746,8 @@ defmodule EmergeDemo.Showcase.View.Interaction do
               text("Soft keyboard status: #{soft_keyboard.last_action}")
             )
           ])
-        )
+        ),
+        direction: :column
       )
     ])
   end
@@ -767,12 +764,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       column([spacing(10)], [
         el([Font.size(12), Font.color(panel_title())], text("Decorative pointer styling")),
-        el(
-          [Font.size(11), Font.color(panel_muted())],
+        paragraph([width(fill()), Font.size(11), Font.color(panel_muted())], [
           text(
             "No Elixir state changes here. Hover and press only swap decorative attrs on the element."
           )
-        ),
+        ]),
         el(
           [
             width(fill()),
@@ -818,12 +814,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
     column([width(min(px(320), fill())), padding(10), spacing(10)], [
       el([Font.size(14), Font.color(title_text())], text("on_mouse_enter / on_mouse_leave")),
-      el(
-        [Font.size(11), Font.color(body_text())],
+      paragraph([width(fill()), Font.size(11), Font.color(body_text())], [
         text(
           "Hover events are sent to Solve, which toggles explicit app state and rerenders the panel."
         )
-      ),
+      ]),
       el(
         [
           width(fill()),
@@ -867,12 +862,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
   defp declarative_hover_panel do
     column([width(min(px(320), fill())), padding(10), spacing(10)], [
       el([Font.size(14), Font.color(title_text())], text("mouse_over")),
-      el(
-        [Font.size(11), Font.color(body_text())],
+      paragraph([width(fill()), Font.size(11), Font.color(body_text())], [
         text(
           "Styles live on the element. Rust tracks hover and applies decorative attrs without Elixir state."
         )
-      ),
+      ]),
       el(
         [
           width(fill()),
@@ -902,10 +896,9 @@ defmodule EmergeDemo.Showcase.View.Interaction do
             [Font.size(11), Font.color(declarative_hover_text())],
             text("No enter/leave handlers or hover state in Elixir.")
           ),
-          el(
-            [Font.size(10), Font.color(declarative_hover_detail_text())],
+          paragraph([width(fill()), Font.size(10), Font.color(declarative_hover_detail_text())], [
             text("Hover changes decoration, spacing, and paint-time transforms.")
-          )
+          ])
         ])
       )
     ])
@@ -923,12 +916,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       column([spacing(10)], [
         el([Font.size(12), Font.color(panel_title())], text("Explicit press events")),
-        el(
-          [Font.size(11), Font.color(panel_muted())],
+        paragraph([width(fill()), Font.size(11), Font.color(panel_muted())], [
           text(
             "Press and release send separate messages, so domain state can count both phases explicitly."
           )
-        ),
+        ]),
         el(
           [
             width(fill()),
@@ -952,12 +944,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
           ],
           column([spacing(6)], [
             el([Font.size(13)], text("Track mouse down and up separately")),
-            el(
-              [Font.size(10), Font.color(panel_muted())],
+            paragraph([width(fill()), Font.size(10), Font.color(panel_muted())], [
               text(
                 "The counters below update from Event.on_mouse_down/1 and Event.on_mouse_up/1."
               )
-            )
+            ])
           ])
         ),
         wrapped_row([width(fill()), spacing_xy(8, 8)], [
@@ -1110,11 +1101,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
           color_rgb(228, 244, 236)
         )
       ]),
-      wrapped_row([width(fill()), spacing_xy(14, 14)], [
+      Example.comparison_rows([
         transformed_event_showcase(
           "Translated Move",
           "Transform.move_x(40), Transform.move_y(14)",
-          "Hover glow and move tracking both follow the shifted card.",
+          "Move tracking follows the shifted card.",
           [Transform.move_x(40), Transform.move_y(14)],
           [
             Interactive.mouse_over([
@@ -1130,7 +1121,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
         transformed_event_showcase(
           "Rotated Hover",
           "Transform.rotate(16)",
-          "Enter, leave, and hover styling all follow the painted angle.",
+          "Hover follows the rotated card.",
           [Transform.rotate(16)],
           [
             Interactive.mouse_over([
@@ -1149,7 +1140,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
         transformed_event_showcase(
           "Scaled Press",
           "Transform.scale(1.18)",
-          "Hover glow and mouse_down inset both stay on the scaled shape.",
+          "Hover and press follow the scaled card.",
           [Transform.scale(1.18)],
           [
             Interactive.mouse_over([
@@ -1222,7 +1213,6 @@ defmodule EmergeDemo.Showcase.View.Interaction do
                 Nearby.in_front(
                   transformed_event_target(
                     label,
-                    transform_note,
                     transform_attrs,
                     state_attrs,
                     event_attrs,
@@ -1242,7 +1232,12 @@ defmodule EmergeDemo.Showcase.View.Interaction do
               )
             )
           ),
-          el([Font.size(10), Font.color(color_rgb(204, 214, 236))], text(transform_note))
+          column(
+            [spacing(2)],
+            transform_note
+            |> String.split(", ")
+            |> Enum.map(&el([Font.size(10), Font.color(color_rgb(204, 214, 236))], text(&1)))
+          )
         ])
       )
     ])
@@ -1250,7 +1245,6 @@ defmodule EmergeDemo.Showcase.View.Interaction do
 
   defp transformed_event_target(
          label,
-         transform_note,
          transform_attrs,
          state_attrs,
          event_attrs,
@@ -1268,13 +1262,7 @@ defmodule EmergeDemo.Showcase.View.Interaction do
         Border.color(color_rgba(245, 248, 255, 120 / 255)),
         Border.rounded(12)
       ] ++ transform_attrs ++ state_attrs ++ event_attrs,
-      column([center_x(), center_y(), spacing(5)], [
-        el([Font.size(13), Font.color(color(:white))], text(label)),
-        el(
-          [Font.size(10), Font.color(color_rgba(245, 248, 255, 215 / 255))],
-          text(transform_note)
-        )
-      ])
+      el([center_x(), center_y(), Font.size(13), Font.color(color(:white))], text(label))
     )
   end
 
@@ -1638,12 +1626,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
           ],
           field.value
         ),
-        el(
-          [Font.size(11), Font.color(panel_muted())],
+        paragraph([width(fill()), Font.size(11), Font.color(panel_muted())], [
           text(
             "No explicit height is set here, so the multiline input grows to fit wrapped lines and inserted newlines."
           )
-        ),
+        ]),
         wrapped_row([width(fill()), spacing_xy(8, 8)], [
           status_chip("State", state_label, state_bg, state_text),
           status_chip(
@@ -1711,12 +1698,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
           ],
           field.value
         ),
-        el(
-          [Font.size(11), Font.color(panel_muted())],
+        paragraph([width(fill()), Font.size(11), Font.color(panel_muted())], [
           text(
             "The Enter keydown handler fires first here, so the default multiline newline is suppressed."
           )
-        ),
+        ]),
         wrapped_row([width(fill()), spacing_xy(8, 8)], [
           status_chip("State", state_label, state_bg, state_text),
           status_chip(
@@ -1995,10 +1981,10 @@ defmodule EmergeDemo.Showcase.View.Interaction do
     :erlang.float_to_binary(value * 1.0, decimals: 1)
   end
 
-  # Code previews
+  # Focused code snippets
 
   defp interactive_states_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el(
       [
         Interactive.mouse_over([Transform.move_y(-1)]),
@@ -2006,11 +1992,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text("Purely visual pointer states")
     )
-    """
+    """)
   end
 
   defp hover_compare_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     interaction = solve(Showcase.App, :interaction)
 
     el(
@@ -2030,11 +2016,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text("Declarative hover")
     )
-    """
+    """)
   end
 
   defp mouse_press_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     interaction = solve(Showcase.App, :interaction)
 
     el(
@@ -2044,11 +2030,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text("Track mouse down and up separately")
     )
-    """
+    """)
   end
 
   defp swipe_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     interaction = solve(Showcase.App, :interaction)
 
     el(
@@ -2060,11 +2046,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text("Swipe Pad")
     )
-    """
+    """)
   end
 
   defp transformed_hit_testing_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     interaction = solve(Showcase.App, :interaction)
 
     el([
@@ -2076,11 +2062,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
         ], text("Translated Move"))
       )
     ], text("Original slot"))
-    """
+    """)
   end
 
   defp text_input_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     text_input = solve(Showcase.App, :text_input)
 
     Input.text(
@@ -2091,11 +2077,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text_input.value
     )
-    """
+    """)
   end
 
   defp multiline_auto_grow_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     multiline_input = solve(Showcase.App, :multiline_input)
 
     Input.multiline(
@@ -2106,11 +2092,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       multiline_input.grow.value
     )
-    """
+    """)
   end
 
   defp multiline_submit_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     multiline_input = solve(Showcase.App, :multiline_input)
 
     Input.multiline(
@@ -2120,11 +2106,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       multiline_input.submit.value
     )
-    """
+    """)
   end
 
   defp input_styles_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     Input.text(
       [
         Interactive.mouse_over([Background.color(color(:slate, 600))]),
@@ -2133,11 +2119,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       "Style showcase input"
     )
-    """
+    """)
   end
 
   defp slider_input_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     slider_input = solve(Showcase.App, :slider_input)
 
     Input.slider(
@@ -2157,11 +2143,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
     )
 
     Input.slider([rotate(-90), Slider.config(step: 10)], slider_input.vertical)
-    """
+    """)
   end
 
   defp input_button_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     input_button = solve(Showcase.App, :input_button)
 
     Input.button(
@@ -2172,11 +2158,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text("Run action")
     )
-    """
+    """)
   end
 
   defp key_listener_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     key_listener = solve(Showcase.App, :key_listener)
 
     el(
@@ -2187,11 +2173,11 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       ],
       text("Keyboard listener pad")
     )
-    """
+    """)
   end
 
   defp virtual_keyboard_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     soft_keyboard = solve(Showcase.App, :soft_keyboard)
     text_input = solve(Showcase.App, :text_input)
 
@@ -2208,34 +2194,10 @@ defmodule EmergeDemo.Showcase.View.Interaction do
       id: {:letter, :a},
       popup: soft_alternate_popup(:a, soft_keyboard)
     )
-    """
+    """)
   end
 
   # Generic elements
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
-  end
-
-  defp interaction_example(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
 
   defp status_chip(label, value, bg, fg) do
     el(

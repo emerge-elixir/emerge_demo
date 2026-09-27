@@ -1,7 +1,8 @@
 defmodule EmergeDemo.Showcase.View.Nearby do
   use Emerge.UI
 
-  alias EmergeDemo.Showcase.View
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
   alias Emerge.UI.Nearby, as: NearbyUI
 
   # Page composition
@@ -19,18 +20,18 @@ defmodule EmergeDemo.Showcase.View.Nearby do
 
   defp nearby_elements_section do
     column([width(fill()), spacing(16)], [
-      section_title("Nearby Elements"),
-      section_copy(
-        "Nearby.above/1, Nearby.below/1, Nearby.on_left/1, Nearby.on_right/1, and Nearby.in_front/1 all let content escape the normal layout while staying anchored to a host element. For above and below, horizontal alignment comes from the nearby root. For on_left and on_right, vertical alignment comes from the nearby root. in_front can use both axes."
+      Example.heading("Give an element a companion"),
+      Example.prose(
+        "A nearby element belongs to a host but does not take another layout slot. Start with the five directions, then compare an overlay in front of the content with one behind it."
       ),
-      nearby_example(
+      Example.layout(
         "Slots and host anchoring",
         "Above and below read align_left, center_x, and align_right on the nearby root. on_left and on_right read align_top, center_y, and align_bottom. in_front can use both axes. behind_content stays between the host background and its content.",
         {:nearby, :slots},
         nearby_slots_code(),
         wrapped_row([width(fill()), spacing_xy(12, 12)], [
-          el([width(min(px(340), fill()))], nearby_slot_card()),
-          el([width(min(px(340), fill()))], nearby_behind_content_card())
+          el([width(min(px(312), fill()))], nearby_slot_card()),
+          el([width(min(px(312), fill()))], nearby_behind_content_card())
         ])
       )
     ])
@@ -38,18 +39,18 @@ defmodule EmergeDemo.Showcase.View.Nearby do
 
   defp escape_layout_section do
     column([width(fill()), spacing(16)], [
-      section_title("Escape the Layout"),
-      section_copy(
+      Example.heading("Let the companion leave the box"),
+      Example.prose(
         "Nearby content stays anchored to a host, but it can still escape the normal layout flow. That is what makes dropdowns, popovers, badges, and oversized overlays possible without changing where siblings are laid out."
       ),
-      nearby_example(
+      Example.layout(
         "Dropdowns and oversized overlays",
         "The dropdown stays attached to the button while the caption below remains in its normal slot. The oversized in_front overlay escapes the host bounds while staying anchored to it.",
         {:nearby, :escape_layout},
         escape_layout_code(),
         wrapped_row([width(fill()), spacing_xy(12, 12)], [
-          el([width(min(px(360), fill()))], nearby_toolbar_escape_card()),
-          el([width(min(px(320), fill()))], nearby_overflow_card())
+          el([width(min(px(312), fill()))], nearby_toolbar_escape_card()),
+          el([width(min(px(312), fill()))], nearby_overflow_card())
         ])
       )
     ])
@@ -57,11 +58,11 @@ defmodule EmergeDemo.Showcase.View.Nearby do
 
   defp sibling_precedence_section do
     column([width(fill()), spacing(16)], [
-      section_title("Sibling Precedence"),
-      section_copy(
-        "Nearby overlays still follow sibling paint order. If two overlays overlap, the later sibling wins where they intersect."
+      Example.heading("Which overlay ends up on top?"),
+      Example.prose(
+        "An overlay still belongs to its sibling in the tree. Where two overlays intersect, the later sibling paints last. The green overlay below demonstrates that ordering."
       ),
-      nearby_example(
+      Example.layout(
         "Later sibling paints above earlier sibling",
         "The green overlay belongs to the later sibling, so it ends up on top where both nearby overlays overlap.",
         {:nearby, :precedence},
@@ -73,18 +74,18 @@ defmodule EmergeDemo.Showcase.View.Nearby do
 
   defp clip_nearby_section do
     column([width(fill()), spacing(16)], [
-      section_title("clip_nearby"),
-      section_copy(
+      Example.heading("Choose where the escape should stop"),
+      Example.prose(
         "Nearby content escapes clipping by default. Add clip_nearby() on a scroll container when you want that container to become a clipping barrier for nearby content inside it."
       ),
-      nearby_example(
+      Example.layout(
         "Unclipped vs clipped overlays",
         "The first scroll panel lets the oversized nearby card bleed outside its rounded viewport. The second panel adds clip_nearby() and clips the same overlay back to the scrollport.",
         {:nearby, :clip_nearby},
         clip_nearby_code(),
         wrapped_row([width(fill()), spacing_xy(12, 12)], [
-          el([width(min(px(320), fill()))], nearby_clip_card("Unclipped escape", false)),
-          el([width(min(px(320), fill()))], nearby_clip_card("clip_nearby()", true))
+          el([width(min(px(312), fill()))], nearby_clip_card("Unclipped escape", false)),
+          el([width(min(px(312), fill()))], nearby_clip_card("clip_nearby()", true))
         ])
       )
     ])
@@ -451,10 +452,10 @@ defmodule EmergeDemo.Showcase.View.Nearby do
     )
   end
 
-  # Code previews
+  # Focused code snippets
 
   defp nearby_slots_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       Nearby.above(el([align_right()], text("Above"))),
       Nearby.below(el([center_x()], text("Below"))),
@@ -462,65 +463,41 @@ defmodule EmergeDemo.Showcase.View.Nearby do
       Nearby.on_right(el([align_bottom()], text("Right"))),
       Nearby.in_front(el([center_x(), center_y()], text("Front")))
     ], text("Host"))
-    """
+    """)
   end
 
   defp escape_layout_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     Input.button(
       [
         Nearby.below(dropdown_menu())
       ],
       text("Actions")
     )
-    """
+    """)
   end
 
   defp precedence_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     row([], [
       el([Nearby.in_front(red_overlay())], text("Left")),
       el([Nearby.on_left(green_overlay())], text("Right"))
     ])
-    """
+    """)
   end
 
   defp clip_nearby_code do
-    ~S"""
+    CodeBlock.snippet(~S"""
     el([
       scrollbar_y(),
       clip_nearby()
     ], column([], [
       el([Nearby.above(overlay())], text("Pinned review"))
     ]))
-    """
+    """)
   end
 
   # Generic elements
-
-  defp nearby_example(title, note, example_id, code, content) do
-    View.hover_example(
-      example_id,
-      code,
-      column([width(fill()), spacing(10)], [
-        el([Font.size(12), Font.color(body_text()), Font.bold()], text(title)),
-        paragraph([width(fill()), spacing(3), Font.size(12), Font.color(body_text())], [
-          text(note)
-        ]),
-        content
-      ])
-    )
-  end
-
-  defp section_title(label) do
-    el([Font.size(18), Font.color(title_text())], text(label))
-  end
-
-  defp section_copy(content) do
-    paragraph([width(fill()), spacing(3), Font.size(13), Font.color(body_text())], [
-      text(content)
-    ])
-  end
 
   defp nearby_demo_card(title, note, body) do
     column(
@@ -557,9 +534,4 @@ defmodule EmergeDemo.Showcase.View.Nearby do
       text(label)
     )
   end
-
-  # Palette
-
-  defp title_text, do: color_rgb(24, 30, 38)
-  defp body_text, do: color_rgb(92, 100, 114)
 end

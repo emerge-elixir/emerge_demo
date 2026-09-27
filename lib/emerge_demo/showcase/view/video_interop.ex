@@ -3,114 +3,216 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
 
   use Emerge.UI
 
+  alias EmergeDemo.Showcase.View.{CodeBlock, Example}
+  require CodeBlock
+
   def layout(%{
-        dma_buf: dma_buf,
+        dma_buf: gpu,
         binary: binary,
         h264: h264,
-        h264_dmabuf: h264_dmabuf,
-        h265_dmabuf: h265_dmabuf
+        h264_dmabuf: h264_gpu,
+        h265_dmabuf: h265_gpu
       }) do
-    column([width(fill()), spacing(18)], [
-      intro_card(),
-      wrapped_row([width(fill()), spacing_xy(16, 16)], [
-        stream_card(
-          "H.264 file playback",
-          "H.264 • FFmpeg software decode • owned RGBA8888",
-          "A Membrane file source, H.264 parser, FFmpeg decoder, and real-time scheduler loop a freely licensed Big Buck Bunny clip. © Blender Foundation, CC BY 3.0.",
-          h264
-        ),
-        stream_card(
-          "H.264 DMA-BUF playback",
-          "NV12 • VAAPI hardware decode • sync-file",
-          "A separate Membrane branch decodes the same clip directly into leased DMA-BUF storage without replacing the standard software-decoded pipeline.",
-          h264_dmabuf
-        ),
-        stream_card(
-          "H.265 DMA-BUF playback",
-          "NV12 • VAAPI hardware decode • sync-file",
-          "The shared hardware decoder path decodes an HEVC version of the clip into independently leased DMA-BUF storage.",
-          h265_dmabuf
-        ),
-        stream_card(
-          "GPU DMA-BUF",
-          "ABGR8888 • explicit synchronization",
-          "The GPU producer exports a linear DMA-BUF and synchronization fence for direct import.",
-          dma_buf
-        ),
-        stream_card(
-          "CPU binary",
-          "RGBA8888 • owned storage",
-          "The raster producer emits an owned RGBA8888 binary that the target renderer imports.",
-          binary
-        )
-      ]),
-      validation_steps()
+    column([width(fill()), spacing(32)], [
+      Example.heading("First, separate the frame from its source"),
+      Example.prose(
+        "The video element names a target. Every producer below sends VideoInterop frames to a Membrane sink, which submits them to that target. A failed stream does not stop the other examples."
+      ),
+      stream_example(
+        "Start with pixels the CPU owns",
+        "The raster renderer produces an owned RGBA8888 binary. No borrowed GPU storage needs to stay alive after submission. Watch the moving source arrive in the video element.",
+        :binary,
+        binary_code(),
+        "RGBA8888 · owned storage",
+        binary
+      ),
+      stream_example(
+        "Let a file supply the frames",
+        "Replace the renderer with a file source, H.264 parser, and software decoder. Convert the result to RGBA and pace it before submission. The target element does not need to know how the frame was decoded.",
+        :h264,
+        h264_code(),
+        "H.264 · software decode",
+        h264
+      ),
+      Example.heading("Now borrow GPU storage instead"),
+      Example.prose(
+        "A DMA-BUF frame carries a lease and, when required, a synchronization fence. Submission consumes that frame; do not release it again afterwards. These paths need compatible Linux GPU hardware."
+      ),
+      stream_example(
+        "Decode H.264 without a CPU pixel copy",
+        "Keep the file and parser, but use VAAPI decoding with DMA-BUF output. The resulting NV12 frame is leased until the consumer finishes using it.",
+        :h264_dmabuf,
+        h264_dmabuf_code(),
+        "NV12 · VAAPI · sync-file",
+        h264_gpu
+      ),
+      stream_example(
+        "Change the codec, keep the frame contract",
+        "An H.265 parser and decoder produce the same kind of VideoInterop frame. This branch has its own target and leases, so it can run alongside H.264.",
+        :h265_dmabuf,
+        h265_dmabuf_code(),
+        "NV12 · HEVC · sync-file",
+        h265_gpu
+      ),
+      stream_example(
+        "A renderer can be a producer too",
+        "The headless GPU renderer exports its scene as a DMA-BUF. OpenGL or Vulkan can produce it, and the visible viewport imports it through the same submission API.",
+        :dma_buf,
+        gpu_code(),
+        "ABGR8888 · GPU rendering",
+        gpu
+      ),
+      Example.heading("Who keeps a borrowed frame alive?"),
+      Example.prose(
+        "The consumer may retain the displayed frame. On shutdown, quiesce the consumer and release queued frames before waiting for the producer's borrowed pool to drain. The validation script exercises all four OpenGL/Vulkan routes, hide/show, and restart."
+      ),
+      Example.prose(
+        "The bundled H.264 and H.265 clips are derived from Big Buck Bunny. © Blender Foundation, CC BY 3.0; attribution is in priv/video/README.md."
+      )
     ])
   end
 
   def layout(_targets) do
-    layout(%{
-      dma_buf: {:starting, nil},
-      binary: {:starting, nil},
-      h264: {:starting, nil},
-      h264_dmabuf: {:starting, nil},
-      h265_dmabuf: {:starting, nil}
-    })
-  end
-
-  defp intro_card do
-    row(
-      [
-        width(fill()),
-        padding(18),
-        spacing(16),
-        Background.color(color_rgb(245, 248, 255)),
-        Border.rounded(14),
-        Border.width(1),
-        Border.color(color_rgb(214, 223, 244))
-      ],
-      [
-        column([width(fill()), spacing(6)], [
-          el(
-            [Font.size(18), Font.bold(), Font.color(color_rgb(31, 44, 74))],
-            text("Live VideoInterop paths")
-          ),
-          paragraph([width(fill()), Font.size(14), Font.color(color_rgb(82, 96, 126))], [
-            text(
-              "Five paths feed the same Emerge viewport through VideoInterop: software-decoded H.264, hardware-decoded H.264 and H.265 NV12 DMA-BUF, GPU-rendered DMA-BUF, and an owned CPU RGBA8888 binary."
-            )
-          ])
-        ]),
-        badge("5 STREAMS", color_rgb(220, 252, 231), color_rgb(22, 101, 52))
-      ]
+    layout(
+      Map.new([:dma_buf, :binary, :h264, :h264_dmabuf, :h265_dmabuf], &{&1, {:starting, nil}})
     )
   end
 
-  defp stream_card(title, format, detail, {status, target}) do
-    column(
-      [
-        width(px(470)),
-        padding(14),
-        spacing(10),
-        Background.color(color_rgb(252, 252, 253)),
-        Border.rounded(16),
-        Border.width(1),
-        Border.color(color_rgb(225, 228, 236))
-      ],
-      [
-        row([width(fill()), spacing(10)], [
-          column([width(fill()), spacing(3)], [
-            el([Font.size(16), Font.bold(), Font.color(color_rgb(35, 42, 56))], text(title)),
-            el([Font.size(12), Font.color(color_rgb(92, 101, 122))], text(format))
+  defp stream_example(title, explanation, id, code, format, {status, target}) do
+    Example.layout(
+      title,
+      explanation,
+      {:video_interop, id},
+      code,
+      column([width(fill()), spacing(12)], [
+        row([width(fill()), spacing(12)], [
+          paragraph([width(fill()), Font.size(13), Font.color(color_rgb(80, 89, 105))], [
+            text(format)
           ]),
           status_badge(status)
         ]),
-        video_panel(target, status),
-        paragraph([width(fill()), Font.size(12), Font.color(color_rgb(100, 107, 121))], [
-          text(detail)
-        ])
+        video_panel(target, status)
+      ])
+    )
+  end
+
+  defp binary_code do
+    CodeBlock.snippet(~S"""
+    {:ok, producer} = EmergeSkia.start(
+      otp_app: :emerge_demo,
+      backend: :headless,
+      rendering_api: :raster,
+      width: 640, height: 420,
+      headless: [
+        target: ingress,
+        mode: :binary,
+        pixel_format: :rgba8888
       ]
     )
+    EmergeSkia.upload_tree(producer, scene)
+
+    # The Membrane sink submits each received frame.
+    Emerge.submit_video_frame(
+      viewport, :headless_binary_validation, frame
+    )
+    video([width(fill()), height(fill())],
+      :headless_binary_validation)
+    """)
+  end
+
+  defp h264_code do
+    CodeBlock.snippet(~S"""
+    import Membrane.ChildrenSpec
+
+    child(:file, %Membrane.File.Source{
+      location: EmergeDemo.VideoPipeline.h264_source_path(),
+      content_format: Membrane.H264
+    })
+    |> child(:parser, %Membrane.H264.Parser{
+      output_alignment: :au,
+      output_stream_structure: :annexb,
+      generate_best_effort_timestamps: %{framerate: {24, 1}}
+    })
+    |> child(:decoder, Membrane.H264.FFmpeg.Decoder)
+    |> child(:rgba, %Membrane.FFmpeg.SWScale.Converter{format: :RGBA})
+    |> child(:pace, Membrane.Realtimer)
+    |> child(:frames, EmergeDemo.RawVideoToVideoInterop)
+    |> child(:sink, %Membrane.VideoInterop.Sink{
+      submit: {EmergeDemo.VideoPipeline, :submit, []},
+      target: :h264_file_playback
+    })
+    """)
+  end
+
+  defp h264_dmabuf_code do
+    CodeBlock.snippet(~S"""
+    import Membrane.ChildrenSpec
+
+    # After the H.264 file source, parser, and pacer:
+    child(:decoder, %Membrane.H264.Decoder{
+      decoder: :vaapi,
+      output: :dmabuf,
+      hw_device: EmergeDemo.Application.video_decode_drm_node(),
+      max_in_flight: 4
+    })
+    |> child(:sink, %Membrane.VideoInterop.Sink{
+      submit: {EmergeDemo.VideoPipeline, :submit, []},
+      target: :h264_dmabuf_playback
+    })
+
+    video([width(fill()), height(fill())],
+      :h264_dmabuf_playback)
+    """)
+  end
+
+  defp h265_dmabuf_code do
+    CodeBlock.snippet(~S"""
+    import Membrane.ChildrenSpec
+
+    # Use the H.265 file source and Membrane.H265.Parser.
+    child(:decoder, %Membrane.H265.Decoder{
+      decoder: :vaapi,
+      output: :dmabuf,
+      hw_device: EmergeDemo.Application.video_decode_drm_node(),
+      max_in_flight: 4
+    })
+    |> child(:sink, %Membrane.VideoInterop.Sink{
+      submit: {EmergeDemo.VideoPipeline, :submit, []},
+      target: :h265_dmabuf_playback
+    })
+
+    video([width(fill()), height(fill())],
+      :h265_dmabuf_playback)
+    """)
+  end
+
+  defp gpu_code do
+    CodeBlock.snippet(~S"""
+    # The Membrane source must accept the renderer's tag.
+    %Membrane.VideoInterop.Source{
+      message_tag: :emerge_skia_frame
+    }
+
+    {:ok, producer} = EmergeSkia.start(
+      otp_app: :emerge_demo,
+      backend: :headless,
+      rendering_api: :vulkan, # or :opengl
+      width: 640, height: 420,
+      headless: [
+        mode: :prime,
+        target: ingress,
+        prime: [max_in_flight: 3, drm_node: drm_node]
+      ]
+    )
+    EmergeSkia.upload_tree(producer, scene)
+
+    # Submission consumes the borrowed frame.
+    Emerge.submit_video_frame(
+      viewport, :headless_prime_validation, frame
+    )
+    video([width(fill()), height(fill())],
+      :headless_prime_validation)
+    """)
   end
 
   defp video_panel(_target, {:error, reason}) do
@@ -157,7 +259,7 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
         Font.size(13),
         Font.color(color_rgb(190, 199, 220))
       ],
-      text("Waiting for the headless renderer…")
+      text("Waiting for frames…")
     )
   end
 
@@ -192,64 +294,6 @@ defmodule EmergeDemo.Showcase.View.VideoInterop do
         Font.color(foreground)
       ],
       text(label)
-    )
-  end
-
-  defp validation_steps do
-    wrapped_row([width(fill()), spacing_xy(12, 12)], [
-      step_card(
-        "1",
-        "Decode H.264",
-        "File source → parser → FFmpeg decoder → RGBA conversion runs at the clip's cadence."
-      ),
-      step_card(
-        "2",
-        "Decode to DMA-BUF",
-        "A separate VAAPI decoder exports leased NV12 storage with a sync-file."
-      ),
-      step_card(
-        "3",
-        "Decode H.265 to DMA-BUF",
-        "The shared VAAPI path exports the HEVC clip as leased NV12 storage."
-      ),
-      step_card(
-        "4",
-        "Render on the GPU",
-        "OpenGL or Vulkan renders into exportable linear ABGR8888 storage."
-      ),
-      step_card(
-        "5",
-        "Render on the CPU",
-        "Skia raster renders directly into an owned RGBA8888 binary."
-      ),
-      step_card(
-        "6",
-        "Import by target",
-        "Membrane carries all five streams to viewport-local atom targets."
-      )
-    ])
-  end
-
-  defp step_card(number, title, detail) do
-    column(
-      [
-        width(px(230)),
-        padding(14),
-        spacing(7),
-        Background.color(color_rgb(252, 252, 253)),
-        Border.rounded(12),
-        Border.width(1),
-        Border.color(color_rgb(228, 230, 236))
-      ],
-      [
-        row([spacing(8)], [
-          badge(number, color_rgb(232, 238, 255), color_rgb(52, 76, 145)),
-          el([Font.size(14), Font.bold(), Font.color(color_rgb(35, 42, 56))], text(title))
-        ]),
-        paragraph([width(fill()), Font.size(12), Font.color(color_rgb(100, 107, 121))], [
-          text(detail)
-        ])
-      ]
     )
   end
 end

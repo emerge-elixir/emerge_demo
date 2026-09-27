@@ -51,8 +51,7 @@ defmodule EmergeDemo.Showcase.App do
         name: :soft_keyboard,
         module: Showcase.SoftKeyboard,
         dependencies: [:text_input, :input_button, :key_listener]
-      ),
-      controller!(name: :code_hover, module: Showcase.CodeHover)
+      )
     ]
   end
 end

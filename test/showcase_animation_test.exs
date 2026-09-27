@@ -32,7 +32,7 @@ defmodule EmergeDemo.Showcase.AnimationTest do
 
     tree = View.layout()
     nodes = nodes(tree)
-    assert Enum.any?(nodes, &(&1.attrs[:content] == "Live demos + highlighted Elixir"))
+
     refute Enum.any?(nodes, &Map.has_key?(&1.attrs, :on_mouse_enter))
 
     copy = nodes |> Enum.filter(&(&1.type == :text)) |> Enum.map_join("\n", & &1.attrs.content)
@@ -46,7 +46,7 @@ defmodule EmergeDemo.Showcase.AnimationTest do
       assert [_title, _description, %{children: [%{type: :row, children: [code, demo]}]}] =
                section.children
 
-      assert code == AnimationCode.layout(id)
+      assert code.children == [AnimationCode.layout(id)]
       assert demo.type == :column
     end
 
@@ -186,8 +186,7 @@ defmodule EmergeDemo.Showcase.AnimationTest do
 
   test "highlighted recipes retain source and all examples render without a display server" do
     for id <- @examples do
-      code = AnimationCode.layout(id)
-      [_label, highlighted, _note] = code.children
+      highlighted = AnimationCode.layout(id)
       source = AnimationCode.source(id)
       assert {:ok, _ast} = Code.string_to_quoted(source)
 
