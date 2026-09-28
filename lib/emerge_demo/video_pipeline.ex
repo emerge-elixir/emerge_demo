@@ -27,6 +27,7 @@ defmodule EmergeDemo.VideoPipeline do
     :h264_dmabuf_file,
     :h264_dmabuf_parser,
     :h264_dmabuf_realtimer,
+    :h264_dmabuf_gate,
     :h264_dmabuf_decoder,
     :h264_dmabuf_sink
   ]
@@ -36,11 +37,16 @@ defmodule EmergeDemo.VideoPipeline do
     :h265_dmabuf_file,
     :h265_dmabuf_parser,
     :h265_dmabuf_realtimer,
+    :h265_dmabuf_gate,
     :h265_dmabuf_decoder,
     :h265_dmabuf_sink
   ]
   @playback_children @h264_children ++ @h264_dmabuf_children ++ @h265_dmabuf_children
-  @playback_groups [@h264_group, @h264_dmabuf_group, @h265_dmabuf_group]
+  @drain_gates [h264_dmabuf_sink: :h264_dmabuf_gate, h265_dmabuf_sink: :h265_dmabuf_gate]
+
+  def child_spec(opts) do
+    super(opts) |> Map.put(:restart, :transient)
+  end
 
   def start_link(opts \\ []) do
     Membrane.Pipeline.start_link(__MODULE__, opts, name: __MODULE__)
@@ -67,7 +73,9 @@ defmodule EmergeDemo.VideoPipeline do
     state = %{
       sources: %{dma_buf: nil, binary: nil},
       notify: Keyword.get(opts, :notify),
+      viewport_monitor: Process.monitor(EmergeDemo),
       viewport_closed?: false,
+      draining_sinks: MapSet.new(),
       restarting_playbacks: MapSet.new()
     }
 
@@ -75,6 +83,14 @@ defmodule EmergeDemo.VideoPipeline do
   end
 
   @impl true
+  def handle_info(
+        {:DOWN, monitor, :process, _viewport, _reason},
+        ctx,
+        %{viewport_monitor: monitor} = state
+      ) do
+    close_viewport(ctx, state)
+  end
+
   def handle_info(
         {:video_interop_source_ready, _source},
         _ctx,
@@ -132,6 +148,13 @@ defmodule EmergeDemo.VideoPipeline do
   def handle_info(_message, _ctx, state), do: {[], state}
 
   @impl true
+  def handle_terminate_request(ctx, state), do: close_viewport(ctx, state)
+
+  @impl true
+  def handle_element_end_of_stream(sink, :input, _ctx, %{viewport_closed?: true} = state) do
+    finish_drain(sink, state)
+  end
+
   def handle_element_end_of_stream(
         sink,
         :input,
@@ -191,30 +214,36 @@ defmodule EmergeDemo.VideoPipeline do
       end
 
     status(target, {:error, ctx.crash_reason})
-    {[], state}
+
+    case group do
+      @h264_dmabuf_group -> finish_drain(:h264_dmabuf_sink, state)
+      @h265_dmabuf_group -> finish_drain(:h265_dmabuf_sink, state)
+      _other -> {[], state}
+    end
   end
 
   @impl true
   def handle_child_notification(
         {:video_interop_sink_error, :viewport_not_ready},
         _child,
-        _ctx,
+        ctx,
         state
       ) do
     if Process.whereis(EmergeDemo) do
       {[], state}
     else
-      close_viewport(state)
+      close_viewport(ctx, state)
     end
   end
 
   def handle_child_notification(
         {:video_interop_sink_error, :viewport_unavailable},
         _child,
-        _ctx,
-        %{viewport_closed?: true} = state
-      ),
-      do: {[], state}
+        ctx,
+        state
+      ) do
+    close_viewport(ctx, state)
+  end
 
   def handle_child_notification({:video_interop_sink_error, reason}, _child, _ctx, state) do
     report_error(:video_interop_sink_error, reason, state)
@@ -281,6 +310,7 @@ defmodule EmergeDemo.VideoPipeline do
         generate_best_effort_timestamps: %{framerate: {24, 1}}
       })
       |> child(:h264_dmabuf_realtimer, Membrane.Realtimer)
+      |> child(:h264_dmabuf_gate, EmergeDemo.VideoPlaybackGate)
       |> child(:h264_dmabuf_decoder, %Membrane.H264.Decoder{
         output: :dmabuf,
         decoder: :vaapi,
@@ -307,6 +337,7 @@ defmodule EmergeDemo.VideoPipeline do
         generate_best_effort_timestamps: %{framerate: {24, 1}}
       })
       |> child(:h265_dmabuf_realtimer, Membrane.Realtimer)
+      |> child(:h265_dmabuf_gate, EmergeDemo.VideoPlaybackGate)
       |> child(:h265_dmabuf_decoder, %Membrane.H265.Decoder{
         output: :dmabuf,
         decoder: :vaapi,
@@ -441,24 +472,48 @@ defmodule EmergeDemo.VideoPipeline do
   defp source_start_error(:dma_buf), do: :dma_buf_source_start_failed
   defp source_start_error(:binary), do: :binary_source_start_failed
 
-  defp close_viewport(state) do
+  defp close_viewport(_ctx, %{viewport_closed?: true} = state), do: {[], state}
+
+  defp close_viewport(ctx, state) do
     Enum.each(@headless_streams, &stop_video_source/1)
 
-    actions =
-      if state.viewport_closed? do
-        []
-      else
-        [remove_children: @playback_groups]
-      end
+    gates =
+      Enum.filter(@drain_gates, fn {_sink, gate} ->
+        case Map.get(ctx.children, gate) do
+          %{terminating?: false} -> true
+          _other -> false
+        end
+      end)
 
-    {actions,
-     %{
-       state
-       | sources: %{dma_buf: nil, binary: nil},
-         viewport_closed?: true,
-         restarting_playbacks: MapSet.new()
-     }}
+    state = %{
+      state
+      | sources: %{dma_buf: nil, binary: nil},
+        viewport_closed?: true,
+        draining_sinks: MapSet.new(gates, &elem(&1, 0)),
+        restarting_playbacks: MapSet.new()
+    }
+
+    # Keep sinks alive to consume decoder flush output. Terminating all children at
+    # once can strand freshly issued DMA-BUF leases after their sink has exited.
+    actions =
+      if gates == [],
+        do: [terminate: :normal],
+        else: Enum.map(gates, fn {_sink, gate} -> {:notify_child, {gate, :drain}} end)
+
+    {actions, state}
   end
+
+  defp finish_drain(sink, %{viewport_closed?: true} = state) do
+    if MapSet.member?(state.draining_sinks, sink) do
+      state = %{state | draining_sinks: MapSet.delete(state.draining_sinks, sink)}
+      actions = if MapSet.size(state.draining_sinks) == 0, do: [terminate: :normal], else: []
+      {actions, state}
+    else
+      {[], state}
+    end
+  end
+
+  defp finish_drain(_sink, state), do: {[], state}
 
   defp report_error(kind, reason, state) do
     Logger.error("#{kind}: #{inspect(reason)}")

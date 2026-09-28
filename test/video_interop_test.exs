@@ -87,7 +87,7 @@ defmodule EmergeDemo.VideoInteropTest do
 
   for source_name <- [:dma_buf_source, :binary_source] do
     test "#{source_name} accepts the headless producer's actual frame message" do
-      {[spec: branches], _state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+      {[spec: branches], _state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
 
       source_opts =
         branches
@@ -155,7 +155,7 @@ defmodule EmergeDemo.VideoInteropTest do
                 {h264_dmabuf_branch, group: :h264_dmabuf_playback, crash_group_mode: :temporary},
                 {h265_dmabuf_branch, group: :h265_dmabuf_playback, crash_group_mode: :temporary}
               ]
-            ], state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+            ], state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
 
     assert h264_branch.children
            |> Enum.map(&elem(&1, 0))
@@ -177,6 +177,7 @@ defmodule EmergeDemo.VideoInteropTest do
                :h264_dmabuf_file,
                :h264_dmabuf_parser,
                :h264_dmabuf_realtimer,
+               :h264_dmabuf_gate,
                :h264_dmabuf_decoder,
                :h264_dmabuf_sink
              ])
@@ -188,14 +189,19 @@ defmodule EmergeDemo.VideoInteropTest do
                :h265_dmabuf_file,
                :h265_dmabuf_parser,
                :h265_dmabuf_realtimer,
+               :h265_dmabuf_gate,
                :h265_dmabuf_decoder,
                :h265_dmabuf_sink
              ])
 
+    assert is_reference(state.viewport_monitor)
+
     assert state == %{
              sources: %{dma_buf: nil, binary: nil},
              notify: nil,
+             viewport_monitor: state.viewport_monitor,
              viewport_closed?: false,
+             draining_sinks: MapSet.new(),
              restarting_playbacks: MapSet.new()
            }
   end
@@ -393,6 +399,7 @@ defmodule EmergeDemo.VideoInteropTest do
       sources: %{dma_buf: nil, binary: nil},
       notify: nil,
       viewport_closed?: false,
+      draining_sinks: MapSet.new(),
       restarting_playbacks: MapSet.new()
     }
 
@@ -400,7 +407,7 @@ defmodule EmergeDemo.VideoInteropTest do
              EmergeDemo.VideoPipeline.handle_element_end_of_stream(
                :h264_sink,
                :input,
-               %{},
+               %{children: %{}},
                state
              )
 
@@ -419,7 +426,7 @@ defmodule EmergeDemo.VideoInteropTest do
              EmergeDemo.VideoPipeline.handle_element_end_of_stream(
                :h264_dmabuf_sink,
                :input,
-               %{},
+               %{children: %{}},
                state
              )
 
@@ -439,7 +446,7 @@ defmodule EmergeDemo.VideoInteropTest do
              EmergeDemo.VideoPipeline.handle_element_end_of_stream(
                :h265_dmabuf_sink,
                :input,
-               %{},
+               %{children: %{}},
                state
              )
 
@@ -456,58 +463,268 @@ defmodule EmergeDemo.VideoInteropTest do
     assert MapSet.size(h265_restarted.restarting_playbacks) == 0
   end
 
-  test "pipeline stops producers quietly when the main viewport closes" do
-    state = %{
-      sources: %{dma_buf: self(), binary: self()},
-      notify: self(),
-      viewport_closed?: false,
-      restarting_playbacks: MapSet.new()
-    }
+  for reason <- [:viewport_not_ready, :viewport_unavailable] do
+    test "pipeline stops producers and terminates quietly when #{reason} arrives first" do
+      supervisor =
+        start_supervised!(
+          {DynamicSupervisor, name: EmergeDemo.VideoSupervisor, strategy: :one_for_one}
+        )
+
+      producers =
+        for name <- [PrimeSource, BinarySource] do
+          {:ok, producer} =
+            DynamicSupervisor.start_child(supervisor, {Task, fn -> Process.sleep(:infinity) end})
+
+          Process.register(producer, name)
+          {producer, Process.monitor(producer)}
+        end
+
+      state = %{
+        sources: %{dma_buf: self(), binary: self()},
+        notify: self(),
+        viewport_closed?: false,
+        draining_sinks: MapSet.new(),
+        restarting_playbacks: MapSet.new([:h264])
+      }
+
+      log =
+        capture_log(fn ->
+          assert {[terminate: :normal], closed_state} =
+                   EmergeDemo.VideoPipeline.handle_child_notification(
+                     {:video_interop_sink_error, unquote(reason)},
+                     :dma_buf_sink,
+                     %{children: %{}},
+                     state
+                   )
+
+          assert closed_state.sources == %{dma_buf: nil, binary: nil}
+          assert closed_state.viewport_closed?
+          assert closed_state.restarting_playbacks == MapSet.new()
+
+          for reason <- [:viewport_unavailable, :viewport_not_ready] do
+            assert {[], ^closed_state} =
+                     EmergeDemo.VideoPipeline.handle_child_notification(
+                       {:video_interop_sink_error, reason},
+                       :binary_sink,
+                       %{children: %{}},
+                       closed_state
+                     )
+          end
+
+          assert {[], ^closed_state} =
+                   EmergeDemo.VideoPipeline.handle_info(
+                     {:start_video_source, :binary},
+                     %{children: %{}},
+                     closed_state
+                   )
+
+          assert {[], ^closed_state} =
+                   EmergeDemo.VideoPipeline.handle_info(
+                     {:video_interop_source_ready, self()},
+                     %{children: %{}},
+                     closed_state
+                   )
+
+          assert {[], ^closed_state} =
+                   EmergeDemo.VideoPipeline.handle_element_end_of_stream(
+                     :h264_sink,
+                     :input,
+                     %{children: %{}},
+                     closed_state
+                   )
+
+          assert {[], ^closed_state} =
+                   EmergeDemo.VideoPipeline.handle_child_terminated(
+                     :h264_sink,
+                     %{children: %{}},
+                     closed_state
+                   )
+        end)
+
+      for {producer, monitor} <- producers do
+        assert_receive {:DOWN, ^monitor, :process, ^producer, :shutdown}
+      end
+
+      assert DynamicSupervisor.count_children(supervisor).active == 0
+      assert log == ""
+      refute_receive {:video_interop_sink_error, _reason}
+    end
+  end
+
+  test "viewport monitor triggers graceful termination without waiting for a frame" do
+    viewport = start_supervised!({Task, fn -> Process.sleep(:infinity) end})
+    Process.register(viewport, EmergeDemo)
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
+    monitor = state.viewport_monitor
+
+    unrelated_down = {:DOWN, make_ref(), :process, self(), :normal}
+
+    assert {[], ^state} =
+             EmergeDemo.VideoPipeline.handle_info(unrelated_down, %{children: %{}}, state)
+
+    Process.exit(viewport, :shutdown)
+    assert_receive {:DOWN, ^monitor, :process, _object, :shutdown} = down
+
+    assert {[terminate: :normal], closed_state} =
+             EmergeDemo.VideoPipeline.handle_info(down, %{children: %{}}, state)
+
+    assert closed_state.viewport_closed?
+
+    assert {[], ^closed_state} =
+             EmergeDemo.VideoPipeline.handle_info(down, %{children: %{}}, closed_state)
+  end
+
+  test "pipeline also terminates if the viewport closed before initialization" do
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
+    monitor = state.viewport_monitor
+    assert_receive {:DOWN, ^monitor, :process, _object, :noproc} = down
+
+    assert {[terminate: :normal], %{viewport_closed?: true}} =
+             EmergeDemo.VideoPipeline.handle_info(down, %{children: %{}}, state)
+  end
+
+  test "viewport not ready during startup is not treated as a window close" do
+    Process.register(self(), EmergeDemo)
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
+
+    assert {[], ^state} =
+             EmergeDemo.VideoPipeline.handle_child_notification(
+               {:video_interop_sink_error, :viewport_not_ready},
+               :binary_sink,
+               %{children: %{}},
+               state
+             )
+  end
+
+  test "closing the viewport gracefully stops the supervised pipeline and its ingress branches" do
+    assert EmergeDemo.VideoPipeline.child_spec([]).restart == :transient
+    viewport = start_supervised!({Task, fn -> receive do: (:close -> :ok) end})
+    Process.register(viewport, EmergeDemo)
 
     log =
       capture_log(fn ->
-        assert {[
-                  remove_children: [
-                    :h264_playback,
-                    :h264_dmabuf_playback,
-                    :h265_dmabuf_playback
-                  ]
-                ], closed_state} =
-                 EmergeDemo.VideoPipeline.handle_child_notification(
-                   {:video_interop_sink_error, :viewport_not_ready},
-                   :dma_buf_sink,
-                   %{},
-                   state
-                 )
+        # No VideoSupervisor is started, so this exercises the real Membrane branches
+        # without starting native headless renderers.
+        {:ok, supervisor, pipeline} = start_supervised(EmergeDemo.VideoPipeline)
 
-        assert closed_state.sources == %{dma_buf: nil, binary: nil}
-        assert closed_state.viewport_closed?
+        children =
+          for child <- [:dma_buf_source, :dma_buf_sink, :binary_source, :binary_sink] do
+            Membrane.Testing.Pipeline.get_child_pid!(pipeline, child)
+          end
 
-        assert {[], ^closed_state} =
-                 EmergeDemo.VideoPipeline.handle_child_notification(
-                   {:video_interop_sink_error, :viewport_unavailable},
-                   :binary_sink,
-                   %{},
-                   closed_state
-                 )
+        monitors = for pid <- children ++ [pipeline, supervisor], do: {pid, Process.monitor(pid)}
+        send(viewport, :close)
 
-        assert {[], ^closed_state} =
-                 EmergeDemo.VideoPipeline.handle_info(
-                   {:start_video_source, :binary},
-                   %{},
-                   closed_state
-                 )
+        for {pid, monitor} <- monitors do
+          assert_receive {:DOWN, ^monitor, :process, ^pid, :normal}, 5_000
+        end
 
-        assert {[], ^closed_state} =
-                 EmergeDemo.VideoPipeline.handle_info(
-                   {:video_interop_source_ready, self()},
-                   %{},
-                   closed_state
-                 )
+        refute Process.whereis(EmergeDemo.VideoPipeline)
       end)
 
-    assert log == ""
-    refute_receive {:video_interop_sink_error, _reason}
+    refute log =~ "video_interop_sink_error"
+  end
+
+  test "shutdown waits for both hardware sinks to consume decoder flush output" do
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+
+    ctx = %{
+      children: %{
+        h264_dmabuf_gate: %{terminating?: false},
+        h265_dmabuf_gate: %{terminating?: false}
+      }
+    }
+
+    assert {[
+              notify_child: {:h264_dmabuf_gate, :drain},
+              notify_child: {:h265_dmabuf_gate, :drain}
+            ], draining} = EmergeDemo.VideoPipeline.handle_terminate_request(ctx, state)
+
+    assert draining.viewport_closed?
+    assert draining.draining_sinks == MapSet.new([:h264_dmabuf_sink, :h265_dmabuf_sink])
+    assert {[], ^draining} = EmergeDemo.VideoPipeline.handle_terminate_request(ctx, draining)
+
+    assert {[], half_drained} =
+             EmergeDemo.VideoPipeline.handle_element_end_of_stream(
+               :h264_dmabuf_sink,
+               :input,
+               ctx,
+               draining
+             )
+
+    assert half_drained.draining_sinks == MapSet.new([:h265_dmabuf_sink])
+
+    assert {[terminate: :normal], drained} =
+             EmergeDemo.VideoPipeline.handle_element_end_of_stream(
+               :h265_dmabuf_sink,
+               :input,
+               ctx,
+               half_drained
+             )
+
+    assert drained.draining_sinks == MapSet.new()
+  end
+
+  test "shutdown skips removed branches and finishes if a draining branch crashes" do
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+
+    ctx = %{
+      children: %{
+        h264_dmabuf_gate: %{terminating?: true},
+        h265_dmabuf_gate: %{terminating?: false}
+      }
+    }
+
+    assert {[notify_child: {:h265_dmabuf_gate, :drain}], draining} =
+             EmergeDemo.VideoPipeline.handle_terminate_request(ctx, state)
+
+    assert {[terminate: :normal], _state} =
+             EmergeDemo.VideoPipeline.handle_crash_group_down(
+               :h265_dmabuf_playback,
+               %{crash_reason: :decoder_failed},
+               draining
+             )
+  end
+
+  test "closing during hardware playback drains all decoder leases without quarantine" do
+    if File.exists?(EmergeDemo.Application.video_decode_drm_node()) do
+      viewport = start_supervised!({Task, fn -> receive do: (:close -> :ok) end})
+      Process.register(viewport, EmergeDemo)
+
+      log =
+        capture_log(fn ->
+          {:ok, supervisor, pipeline} = start_supervised(EmergeDemo.VideoPipeline)
+
+          decoder_processes =
+            Enum.flat_map([:h264_dmabuf_decoder, :h265_dmabuf_decoder], fn name ->
+              decoder = Membrane.Testing.Pipeline.get_child_pid!(pipeline, name)
+              state = await_decoder_frames(decoder)
+              [decoder, state.lease_owner, state.release_dispatcher_custodian]
+            end)
+
+          monitors =
+            for pid <- decoder_processes ++ [pipeline, supervisor],
+                do: {pid, Process.monitor(pid)}
+
+          send(viewport, :close)
+
+          for {pid, monitor} <- monitors do
+            assert_receive {:DOWN, ^monitor, :process, ^pid, :normal}, 5_000
+          end
+
+          refute Membrane.VideoTranscode.Decoder.Native.release_dispatcher_quarantined()
+        end)
+
+      refute log =~ "video_interop_shutdown_failed"
+      refute log =~ "video_interop_sink_error"
+    end
+  end
+
+  test "explicit termination uses the same cleanup as closing the window" do
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
+
+    assert {[terminate: :normal], %{viewport_closed?: true}} =
+             EmergeDemo.VideoPipeline.handle_terminate_request(%{children: %{}}, state)
   end
 
   test "pipeline forwards unexpected child errors without returning an invalid action" do
@@ -515,6 +732,7 @@ defmodule EmergeDemo.VideoInteropTest do
       sources: %{dma_buf: nil, binary: nil},
       notify: self(),
       viewport_closed?: false,
+      draining_sinks: MapSet.new(),
       restarting_playbacks: MapSet.new()
     }
 
@@ -524,7 +742,7 @@ defmodule EmergeDemo.VideoInteropTest do
                  EmergeDemo.VideoPipeline.handle_child_notification(
                    {:video_interop_sink_error, :rejected},
                    :binary_sink,
-                   %{},
+                   %{children: %{}},
                    state
                  )
 
@@ -548,7 +766,7 @@ defmodule EmergeDemo.VideoInteropTest do
 
   test "a failed hardware branch reports its own status without stopping the pipeline" do
     Process.register(self(), EmergeDemo)
-    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{}, [])
+    {_actions, state} = EmergeDemo.VideoPipeline.handle_init(%{children: %{}}, [])
 
     assert {[], ^state} =
              EmergeDemo.VideoPipeline.handle_crash_group_down(
@@ -560,5 +778,17 @@ defmodule EmergeDemo.VideoInteropTest do
     assert_receive {:video_status, :h264_dmabuf_playback, {:error, :unsupported}}
     refute_receive {:video_status, :headless_binary_validation, _}
     refute state.viewport_closed?
+  end
+
+  defp await_decoder_frames(decoder, attempts \\ 250) do
+    state = :sys.get_state(decoder).internal_state
+
+    if state.lease_owner && VideoInterop.LeaseOwner.stats(state.lease_owner).issued_leases >= 3 do
+      state
+    else
+      assert attempts > 0, "decoder did not produce frames before shutdown"
+      Process.sleep(20)
+      await_decoder_frames(decoder, attempts - 1)
+    end
   end
 end
